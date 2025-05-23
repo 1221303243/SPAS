@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Rowdies:wght@300;400;700&display=swap');
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    display: flex;
+}
+
+.content-container {
+    flex: 1;
+    margin-left: 318px; /* Match sidebar width */
+    padding: 20px 40px;
+}
+
+.course-header {
+    margin-bottom: 30px;
+}
+
+.course-header h1 {
+    font-size: 36px;
+    margin: 0;
+    padding: 20px 0;
+    color: #333;
+    font-weight: bold;
+}
+
+.graph-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+#curve_chart {
+    width: 100%;
+    height: 350px;
+    min-height: 300px;
+}
+
+.feedback-container {
+    background-color: #4a8eda;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.feedback-container h2 {
+    color: #fff;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.feedback-content {
+    background-color: #e6e6e6;
+    border-radius: 6px;
+    padding: 20px;
+    min-height: 200px;
+}
+
+.no-feedback {
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    margin-top: 80px;
+}
+
+.feedback-item {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ccc;
+}
+
+.feedback-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.feedback-date {
+    color: #666;
+    font-size: 14px;
+}
+
+.feedback-grade {
+    font-weight: bold;
+    color: #006DB0;
+}
+
+.feedback-text {
+    line-height: 1.5;
+    color: #333;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .content-container {
+        padding: 20px;
+    }
+    
+    #curve_chart {
+        height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .content-container {
+        margin-left: 0;
+        padding: 15px;
+    }
+    
+    .course-header h1 {
+        font-size: 28px;
+        padding: 15px 0;
+    }
+    
+    #curve_chart {
+        height: 250px;
+    }
+    
+    .feedback-container h2 {
+        font-size: 20px;
+    }
+} 

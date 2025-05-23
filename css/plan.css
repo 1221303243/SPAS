@@ -1,0 +1,55 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+.container {
+    width: 50%;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+h1 {
+    background: #0056A6;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px 8px 0 0;
+}
+form {
+    padding: 20px;
+}
+label, select, input, button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+}
+select, input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+.assessment-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+button {
+    background: #0056A6;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+button:hover {
+    background: #003f7f;
+}
+#errorMsg {
+    color: red;
+    font-weight: bold;
+}
