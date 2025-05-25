@@ -105,25 +105,71 @@ for ($week = 1; $week <= 14; $week++) {
         function drawChart() {
             fetch('get_chart_data.php?code=<?php echo urlencode($subjectCode); ?>')
                 .then(response => response.json())
-                .then(weekly_grades => {
+                .then(grades_by_date => {
                     var data = new google.visualization.DataTable();
-                    data.addColumn('number', 'Week');
-                    data.addColumn('number', 'Marks');
-                    data.addRows(weekly_grades);
+                    data.addColumn('date', 'Date');
+                    data.addColumn('number', 'Your Grade');
+                    data.addColumn('number', 'Passing Grade');
+
+                    grades_by_date.forEach(function(grade) {
+                        if (grade.date && grade.percentage !== null) {
+                            // Parse date string (YYYY-MM-DD) to JS Date object
+                            var parts = grade.date.split('-');
+                            var jsDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                            data.addRow([jsDate, grade.percentage, 50]);
+                        }
+                    });
 
                     var options = {
                         title: 'Academic Progress Over Time',
                         curveType: 'function',
-                        legend: { position: 'right' },
-                        hAxis: { title: 'Weeks', ticks: [1,2,3,4,5,6,7,8,9,10,11,12,13,14] },
-                        vAxis: { 
-                            title: 'Marks',
-                            viewWindow: { min: 0, max: 100 },
-                            ticks: [0, 20, 40, 60, 80, 100]
+                        legend: { 
+                            position: 'bottom',
+                            textStyle: { fontSize: 12 }
                         },
-                        colors: ['#006DB0'],
+                        hAxis: { 
+                            title: 'Date',
+                            format: 'MMM d, yyyy',
+                            gridlines: { count: -1 },
+                            minorGridlines: { count: 0 },
+                            slantedText: true,
+                            slantedTextAngle: 45
+                        },
+                        vAxis: { 
+                            title: 'Grade (%)',
+                            viewWindow: { min: 0, max: 100 },
+                            ticks: [0, 20, 40, 50, 60, 80, 100],
+                            gridlines: { count: 6 },
+                            minorGridlines: { count: 1 }
+                        },
+                        colors: ['#006DB0', '#FF0000'],
                         lineWidth: 3,
-                        pointSize: 7
+                        pointSize: 7,
+                        tooltip: { 
+                            isHtml: true,
+                            trigger: 'focus'
+                        },
+                        annotations: {
+                            textStyle: {
+                                fontSize: 12,
+                                bold: true
+                            }
+                        },
+                        chartArea: {
+                            left: '10%',
+                            right: '10%',
+                            top: '15%',
+                            bottom: '20%'
+                        },
+                        backgroundColor: '#f8f9fa',
+                        series: {
+                            1: { // Passing grade line
+                                lineDashStyle: [4, 4],
+                                type: 'line',
+                                color: '#FF0000',
+                                lineWidth: 2
+                            }
+                        }
                     };
 
                     var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
