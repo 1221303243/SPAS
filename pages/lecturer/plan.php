@@ -58,6 +58,10 @@ if ($lecturer_id) {
             div.className = "assessment-row";
             div.innerHTML = `
                 <input type="text" name="assessment_type[]" placeholder="Assessment Type" required>
+                <select name="category[]" required>
+                    <option value="coursework">Coursework</option>
+                    <option value="final_exam">Final Exam</option>
+                </select>
                 <input type="number" name="weightage[]" min="0" max="100" value="0" oninput="updateTotal()" required>
                 <input type="date" name="due_date[]" required>
                 <button type="button" onclick="removeAssessment(this)">&#10060;</button>
@@ -72,11 +76,28 @@ if ($lecturer_id) {
 
         function updateTotal() {
             let total = 0;
-            document.querySelectorAll("input[name='weightage[]']").forEach(input => {
-                total += parseInt(input.value) || 0;
+            let courseworkTotal = 0;
+            let finalExamTotal = 0;
+            
+            const rows = document.querySelectorAll(".assessment-row");
+            rows.forEach(row => {
+                const weightage = parseInt(row.querySelector("input[name='weightage[]']").value) || 0;
+                const category = row.querySelector("select[name='category[]']").value;
+                
+                total += weightage;
+                if (category === 'coursework') {
+                    courseworkTotal += weightage;
+                } else {
+                    finalExamTotal += weightage;
+                }
             });
+            
             document.getElementById("totalWeightage").innerText = `Total Weightage: ${total}%`;
-            document.getElementById("errorMsg").style.display = total !== 100 ? "block" : "none";
+            document.getElementById("courseworkWeightage").innerText = `Coursework Weightage: ${courseworkTotal}%`;
+            document.getElementById("finalExamWeightage").innerText = `Final Exam Weightage: ${finalExamTotal}%`;
+            
+            const hasError = total !== 100 || courseworkTotal > 100 || finalExamTotal > 100;
+            document.getElementById("errorMsg").style.display = hasError ? "block" : "none";
         }
     </script>
 </head>
@@ -98,6 +119,10 @@ if ($lecturer_id) {
             <div id="assessments">
                 <div class="assessment-row">
                     <input type="text" name="assessment_type[]" placeholder="Assessment Type" required>
+                    <select name="category[]" required>
+                        <option value="coursework">Coursework</option>
+                        <option value="final_exam">Final Exam</option>
+                    </select>
                     <input type="number" name="weightage[]" min="0" max="100" value="0" oninput="updateTotal()" required>
                     <input type="date" name="due_date[]" required>
                     <button type="button" onclick="removeAssessment(this)">&#10060;</button>
@@ -106,7 +131,9 @@ if ($lecturer_id) {
             
             <button type="button" onclick="addAssessment()">&#43; Add Assessment</button>
             <p id="totalWeightage">Total Weightage: 0%</p>
-            <p id="errorMsg" style="display: none;">Total weightage must be exactly 100%!</p>
+            <p id="courseworkWeightage">Coursework Weightage: 0%</p>
+            <p id="finalExamWeightage">Final Exam Weightage: 0%</p>
+            <p id="errorMsg" style="display: none;">Total weightage must be exactly 100% and each category cannot exceed 100%!</p>
             
             <button type="submit">Save Configuration</button>
         </form>

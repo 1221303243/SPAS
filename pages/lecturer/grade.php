@@ -63,10 +63,10 @@ if ($selected_class_id > 0) {
 // Fetch assessments for the selected subject
 $assessments = [];
 if ($subject_id) {
-    $sql = "SELECT assessment_id, assessment_type, weightage 
+    $sql = "SELECT assessment_id, assessment_type, category, weightage 
             FROM assessment_plans 
             WHERE subject_id = ? 
-            ORDER BY assessment_type";
+            ORDER BY category, assessment_type";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $subject_id);
     $stmt->execute();
@@ -125,18 +125,32 @@ if ($selected_class_id > 0) {
         </div>
     </div>
 
-    <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
-        <div class="alert alert-success mt-3">Grades submitted successfully!</div>
+    <?php if (isset($_SESSION['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+            <?= $_SESSION['error'] ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php unset($_SESSION['error']); ?>
     <?php endif; ?>
 
-    <form method="post" action="grade_submit.php">
+    <?php if (isset($_SESSION['success'])): ?>
+        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+            <?= $_SESSION['success'] ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+
+    <form method="post" action="grade_submit.php" id="gradeForm" class="needs-validation" novalidate>
         <input type="hidden" name="class_id" value="<?php echo htmlspecialchars($selected_class_id); ?>">
         <input type="hidden" name="assessment_id" id="hiddenAssessmentId" value="">
+        
         <!-- Main Content -->
         <div class="container mt-4">
             <div class="card">
                 <div class="card-body">
                     <h3 class="mb-4">Grade Input</h3>
+                    
                     <!-- Class Selection Dropdown -->
                     <div class="mb-4">
                         <label for="classSelect" class="form-label">Select Class:</label>
@@ -151,84 +165,285 @@ if ($selected_class_id > 0) {
                             </select>
                         </div>
                     </div>
+
                     <?php if ($selected_class_id > 0): ?>
-                    <!-- Assessment Selection (only show if class is selected) -->
-                    <div class="mb-4">
-                        <label for="assessmentSelect" class="form-label">Select Assessment:</label>
-                        <div class="input-group">
-                            <select class="form-select" id="assessmentSelect" name="assessment_id" onchange="document.getElementById('hiddenAssessmentId').value = this.value;">
-                                <option value="" selected disabled>Choose assessment type...</option>
-                                <?php if (empty($assessments)): ?>
-                                    <option value="" disabled>No assessments configured for this subject</option>
-                                <?php else: ?>
-                                    <?php foreach ($assessments as $assessment): ?>
-                                        <option value="<?php echo $assessment['assessment_id']; ?>">
-                                            <?php echo htmlspecialchars($assessment['assessment_type'] . ' (' . $assessment['weightage'] . '%)'); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                            <button class="btn btn-outline-secondary" type="button" id="loadGradesBtn">
-                                <i class="bi bi-check-circle"></i>
+                        <!-- Assessment Selection -->
+                        <div class="mb-4">
+                            <label for="assessmentSelect" class="form-label">Select Assessment:</label>
+                            <div class="input-group">
+                                <select class="form-select" id="assessmentSelect" name="assessment_id" required>
+                                    <option value="" selected disabled>Choose assessment type...</option>
+                                    <?php if (empty($assessments)): ?>
+                                        <option value="" disabled>No assessments configured for this subject</option>
+                                    <?php else: ?>
+                                        <optgroup label="Coursework">
+                                            <?php foreach ($assessments as $assessment): ?>
+                                                <?php if ($assessment['category'] === 'coursework'): ?>
+                                                    <option value="<?php echo $assessment['assessment_id']; ?>" 
+                                                            data-weightage="<?php echo $assessment['weightage']; ?>"
+                                                            data-category="<?php echo $assessment['category']; ?>">
+                                                        <?php echo htmlspecialchars($assessment['assessment_type'] . ' (' . $assessment['weightage'] . '%)'); ?>
+                                                    </option>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                        <optgroup label="Final Exam">
+                                            <?php foreach ($assessments as $assessment): ?>
+                                                <?php if ($assessment['category'] === 'final_exam'): ?>
+                                                    <option value="<?php echo $assessment['assessment_id']; ?>"
+                                                            data-weightage="<?php echo $assessment['weightage']; ?>"
+                                                            data-category="<?php echo $assessment['category']; ?>">
+                                                        <?php echo htmlspecialchars($assessment['assessment_type'] . ' (' . $assessment['weightage'] . '%)'); ?>
+                                                    </option>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                    <?php endif; ?>
+                                </select>
+                                <button class="btn btn-outline-secondary" type="button" id="loadGradesBtn" disabled>
+                                    <i class="bi bi-check-circle"></i> Load Current Grades
+                                </button>
+                            </div>
+                            <?php if (empty($assessments)): ?>
+                                <div class="mt-2">
+                                    <a href="plan.php" class="btn btn-outline-primary">
+                                        <i class="bi bi-plus-circle"></i> Configure Assessments
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Assessment Summary -->
+                        <div id="assessmentSummary" class="alert alert-info d-none mb-4">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Category:</strong> <span id="assessmentCategory"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Weightage:</strong> <span id="assessmentWeightage"></span>%
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Due Date:</strong> <span id="assessmentDueDate"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Grade Input Table -->
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Current Grade</th>
+                                        <th>Marks</th>
+                                        <th>Weighted Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($students)): ?>
+                                        <?php foreach ($students as $student): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($student['student_id']); ?></td>
+                                                <td><?php echo htmlspecialchars($student['name']); ?></td>
+                                                <td class="current-grade" data-student-id="<?php echo $student['student_id']; ?>">-</td>
+                                                <td>
+                                                    <input type="number" 
+                                                           class="form-control grade-input" 
+                                                           name="grades[<?php echo $student['student_id']; ?>]"
+                                                           min="0" 
+                                                           max="100" 
+                                                           step="0.01"
+                                                           required
+                                                           data-student-id="<?php echo $student['student_id']; ?>">
+                                                    <div class="invalid-feedback">
+                                                        Please enter a valid mark between 0 and 100
+                                                    </div>
+                                                </td>
+                                                <td class="weighted-score" data-student-id="<?php echo $student['student_id']; ?>">-</td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="5" class="text-center">No students found for this class.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Summary Statistics -->
+                        <div class="row mt-4">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Class Average</h6>
+                                        <h3 id="classAverage">-</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Highest Score</h6>
+                                        <h3 id="highestScore">-</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Lowest Score</h6>
+                                        <h3 id="lowestScore">-</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary" id="resetBtn">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                                <i class="bi bi-save"></i> Save & Submit
                             </button>
                         </div>
-                        <?php if (empty($assessments)): ?>
-                            <div class="mt-2">
-                                <a href="plan.php" class="btn btn-outline-primary">
-                                    <i class="bi bi-plus-circle"></i> Configure Assessments
-                                </a>
-                            </div>
-                        <?php endif; ?>
-                    </div>
                     <?php endif; ?>
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Student ID</th>
-                                    <th>Name</th>
-                                    <th>Grade</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (!empty($students)): ?>
-                                    <?php foreach ($students as $student): ?>
-                                        <tr>
-                                            <td><?php echo htmlspecialchars($student['student_id']); ?></td>
-                                            <td><?php echo htmlspecialchars($student['name']); ?></td>
-                                            <td><input type="number" class="form-control" min="0" max="100" name="grades[<?php echo $student['student_id']; ?>]"></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="3" class="text-center">No students found for this class.</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="d-flex justify-content-end mt-3">
-                        <button class="btn btn-primary" type="submit">Save & Submit</button>
-                    </div>
                 </div>
             </div>
         </div>
     </form>
-    <script>
-    // Keep assessment_id in sync for submission
-    const assessmentSelect = document.getElementById('assessmentSelect');
-    const hiddenAssessmentId = document.getElementById('hiddenAssessmentId');
-    if (assessmentSelect && hiddenAssessmentId) {
-        assessmentSelect.addEventListener('change', function() {
-            hiddenAssessmentId.value = this.value;
-        });
-        // Set initial value if already selected
-        if (assessmentSelect.value) {
-            hiddenAssessmentId.value = assessmentSelect.value;
-        }
-    }
-    </script>
+
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('gradeForm');
+        const assessmentSelect = document.getElementById('assessmentSelect');
+        const loadGradesBtn = document.getElementById('loadGradesBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const assessmentSummary = document.getElementById('assessmentSummary');
+        const gradeInputs = document.querySelectorAll('.grade-input');
+        
+        // Enable/disable load grades button based on assessment selection
+        assessmentSelect.addEventListener('change', function() {
+            loadGradesBtn.disabled = !this.value;
+            submitBtn.disabled = true;
+            resetForm();
+        });
+
+        // Load current grades
+        loadGradesBtn.addEventListener('click', function() {
+            const assessmentId = assessmentSelect.value;
+            if (!assessmentId) return;
+
+            // Show loading state
+            loadGradesBtn.disabled = true;
+            loadGradesBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Loading...';
+
+            // Fetch current grades
+            fetch(`get_grades.php?assessment_id=${assessmentId}&class_id=<?php echo $selected_class_id; ?>`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update assessment summary
+                        assessmentSummary.classList.remove('d-none');
+                        document.getElementById('assessmentCategory').textContent = data.assessment.category;
+                        document.getElementById('assessmentWeightage').textContent = data.assessment.weightage;
+                        document.getElementById('assessmentDueDate').textContent = data.assessment.due_date;
+
+                        // Update grades
+                        data.grades.forEach(grade => {
+                            const input = document.querySelector(`input[data-student-id="${grade.student_id}"]`);
+                            if (input) {
+                                input.value = grade.marks || '';
+                                updateWeightedScore(grade.student_id, grade.marks);
+                            }
+                        });
+
+                        // Enable submit button
+                        submitBtn.disabled = false;
+                    } else {
+                        alert('Error loading grades: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading grades. Please try again.');
+                })
+                .finally(() => {
+                    loadGradesBtn.disabled = false;
+                    loadGradesBtn.innerHTML = '<i class="bi bi-check-circle"></i> Load Current Grades';
+                });
+        });
+
+        // Calculate weighted scores and statistics
+        function updateWeightedScore(studentId, marks) {
+            const weightage = parseFloat(assessmentSelect.selectedOptions[0].dataset.weightage) || 0;
+            const weightedScore = (marks * weightage / 100).toFixed(2);
+            document.querySelector(`.weighted-score[data-student-id="${studentId}"]`).textContent = weightedScore;
+            updateStatistics();
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const marks = Array.from(gradeInputs)
+                .map(input => parseFloat(input.value))
+                .filter(mark => !isNaN(mark));
+
+            if (marks.length > 0) {
+                const average = marks.reduce((a, b) => a + b, 0) / marks.length;
+                document.getElementById('classAverage').textContent = average.toFixed(2);
+                document.getElementById('highestScore').textContent = Math.max(...marks).toFixed(2);
+                document.getElementById('lowestScore').textContent = Math.min(...marks).toFixed(2);
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            form.reset();
+            assessmentSummary.classList.add('d-none');
+            document.querySelectorAll('.weighted-score').forEach(el => el.textContent = '-');
+            document.getElementById('classAverage').textContent = '-';
+            document.getElementById('highestScore').textContent = '-';
+            document.getElementById('lowestScore').textContent = '-';
+            submitBtn.disabled = true;
+        }
+
+        // Reset button handler
+        resetBtn.addEventListener('click', resetForm);
+
+        // Grade input validation and calculation
+        gradeInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                const marks = parseFloat(this.value);
+                if (marks >= 0 && marks <= 100) {
+                    this.classList.remove('is-invalid');
+                    updateWeightedScore(this.dataset.studentId, marks);
+                    submitBtn.disabled = false;
+                } else {
+                    this.classList.add('is-invalid');
+                    submitBtn.disabled = true;
+                }
+            });
+        });
+
+        // Form submission validation
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                if (!confirm('Are you sure you want to submit these grades? This action cannot be undone.')) {
+                    event.preventDefault();
+                }
+            }
+            form.classList.add('was-validated');
+        });
+    });
+    </script>
 </body>
 </html>
