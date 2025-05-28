@@ -38,20 +38,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn->begin_transaction();
     try {
         // Update assessment_plans
-        $stmt = $conn->prepare('UPDATE assessment_plans SET assessment_type = ?, weightage = ? WHERE assessment_id = ?');
-        $stmt->bind_param('sii', $assessment_type, $weightage, $assessment_id);
+        $stmt = $conn->prepare('UPDATE assessment_plans SET assessment_type = ?, weightage = ?, due_date = ? WHERE assessment_id = ?');
+        $stmt->bind_param('sisi', $assessment_type, $weightage, $due_date, $assessment_id);
         $stmt->execute();
         $stmt->close();
 
         // Only delete the old event for this assessment (not all for the subject)
-        $old_event_text = "Assessment Due: $old_assessment_type for $subject_name";
+        $old_event_text = "Assessment Due: $old_assessment_type (" . 
+            ($assessment['category'] === 'coursework' ? 'Coursework' : 'Final Exam') . 
+            ") for $subject_name";
         $del_stmt = $conn->prepare('DELETE FROM calendar_events WHERE event_text = ?');
         $del_stmt->bind_param('s', $old_event_text);
         $del_stmt->execute();
         $del_stmt->close();
 
         // Insert new event
-        $event_text = "Assessment Due: $assessment_type for $subject_name";
+        $event_text = "Assessment Due: $assessment_type (" . 
+            ($assessment['category'] === 'coursework' ? 'Coursework' : 'Final Exam') . 
+            ") for $subject_name";
         $ins_stmt = $conn->prepare('INSERT INTO calendar_events (event_date, event_text) VALUES (?, ?) ON DUPLICATE KEY UPDATE event_text = VALUES(event_text)');
         $ins_stmt->bind_param('ss', $due_date, $event_text);
         $ins_stmt->execute();

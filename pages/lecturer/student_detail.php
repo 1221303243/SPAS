@@ -84,12 +84,12 @@ while ($row = $result->fetch_assoc()) {
     // Calculate totals
     if ($row['category'] === 'coursework') {
         if ($row['marks'] !== null) {
-            $coursework_total += ($row['marks'] * $row['weightage'] / 100);
+            $coursework_total += $row['marks'];
         }
         $coursework_weight += $row['weightage'];
     } else {
         if ($row['marks'] !== null) {
-            $final_exam_total += ($row['marks'] * $row['weightage'] / 100);
+            $final_exam_total += $row['marks'];
         }
         $final_exam_weight += $row['weightage'];
     }
@@ -98,9 +98,9 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 
 // Calculate percentages
-$coursework_percentage = $coursework_weight > 0 ? ($coursework_total / $coursework_weight) * 100 : 0;
-$final_exam_percentage = $final_exam_weight > 0 ? ($final_exam_total / $final_exam_weight) * 100 : 0;
-$overall_percentage = ($coursework_percentage + $final_exam_percentage) / 2;
+$coursework_percentage = $coursework_total; // sum of weighted marks for coursework
+$final_exam_percentage = $final_exam_total; // sum of weighted marks for final exam
+$overall_percentage = $coursework_percentage + $final_exam_percentage; // sum, not average
 
 // Determine pass/fail status
 $coursework_status = $coursework_percentage >= 50 ? 'PASS' : 'FAIL';

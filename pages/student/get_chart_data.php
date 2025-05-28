@@ -140,11 +140,11 @@ try {
 
     // Join grades and assessment_plans to get only grades for this subject and student
     $sql = "
-        SELECT g.marks, g.date_recorded
+        SELECT a.due_date, g.marks
         FROM grades g
         INNER JOIN assessment_plans a ON g.assessment_id = a.assessment_id
         WHERE g.student_id = ? AND a.subject_id = ?
-        ORDER BY g.date_recorded ASC
+        ORDER BY a.due_date ASC
     ";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $student_id, $subject_id);
@@ -153,17 +153,18 @@ try {
 
     $grades_by_date = [];
     while ($row = $result->fetch_assoc()) {
-        // Normalize marks to percentage (assuming out of 100)
         $percentage = null;
         if (is_numeric($row['marks'])) {
             $percentage = max(MIN_GRADE, min(MAX_GRADE, $row['marks']));
         }
         $grades_by_date[] = [
-            'date' => $row['date_recorded'],
+            'date' => $row['due_date'],
             'percentage' => $percentage
         ];
     }
     $stmt->close();
+
+    error_log('grades_by_date: ' . json_encode($grades_by_date)); // DEBUG
 
     header('Content-Type: application/json');
     echo json_encode($grades_by_date);

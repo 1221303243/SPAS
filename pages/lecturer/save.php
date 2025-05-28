@@ -68,10 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
         
         // Insert new assessment plans
-        $stmt = $conn->prepare("INSERT INTO assessment_plans (subject_id, assessment_type, category, weightage) VALUES (?, ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO assessment_plans (subject_id, assessment_type, category, weightage, due_date) VALUES (?, ?, ?, ?, ?)");
         
         for ($i = 0; $i < count($assessment_types); $i++) {
-            $stmt->bind_param("issi", $subject_id, $assessment_types[$i], $categories[$i], $weightages[$i]);
+            $stmt->bind_param("issis", $subject_id, $assessment_types[$i], $categories[$i], $weightages[$i], $due_dates[$i]);
             $stmt->execute();
             
             // Insert into calendar_events

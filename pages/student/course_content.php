@@ -20,13 +20,6 @@ if (!isset($_GET['code'])) {
 }
 
 $subjectCode = $_GET['code'];
-$subjects = array(
-    "MTH101" => "Mathematics",
-    "SCI201" => "Science",
-    "ENG101" => "English",
-    "HIS202" => "History"
-);
-$subjectName = isset($subjects[$subjectCode]) ? $subjects[$subjectCode] : "Unknown Course";
 
 // Get student_id (assuming user_id in session is student_id)
 $student_id = $_SESSION['user_id'];
@@ -37,6 +30,15 @@ $stmt = $conn->prepare("SELECT subject_id FROM subjects WHERE subject_code = ?")
 $stmt->bind_param("s", $subjectCode);
 $stmt->execute();
 $stmt->bind_result($subject_id);
+$stmt->fetch();
+$stmt->close();
+
+// Get subject name from subject code
+$subjectName = "Unknown Subject";
+$stmt = $conn->prepare("SELECT subject_name FROM subjects WHERE subject_code = ?");
+$stmt->bind_param("s", $subjectCode);
+$stmt->execute();
+$stmt->bind_result($subjectName);
 $stmt->fetch();
 $stmt->close();
 
@@ -106,6 +108,7 @@ for ($week = 1; $week <= 14; $week++) {
             fetch('get_chart_data.php?code=<?php echo urlencode($subjectCode); ?>')
                 .then(response => response.json())
                 .then(grades_by_date => {
+                    console.log('grades_by_date:', grades_by_date); // DEBUG
                     var data = new google.visualization.DataTable();
                     data.addColumn('date', 'Date');
                     data.addColumn('number', 'Your Grade');
