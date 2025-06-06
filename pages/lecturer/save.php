@@ -74,10 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("issis", $subject_id, $assessment_types[$i], $categories[$i], $weightages[$i], $due_dates[$i]);
             $stmt->execute();
             
-            // Insert into calendar_events
-            $calendar_stmt = $conn->prepare("INSERT INTO calendar_events (event_date, event_text) VALUES (?, ?) ON DUPLICATE KEY UPDATE event_text = VALUES(event_text)");
+            // Insert into calendar_events with subject_id
+            $calendar_stmt = $conn->prepare("INSERT INTO calendar_events (event_date, event_text, subject_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE event_text = VALUES(event_text), subject_id = VALUES(subject_id)");
             $event_text = "Assessment Due: " . $assessment_types[$i] . " (" . ucfirst($categories[$i]) . ") for " . $subject_name;
-            $calendar_stmt->bind_param("ss", $due_dates[$i], $event_text);
+            $calendar_stmt->bind_param("ssi", $due_dates[$i], $event_text, $subject_id);
             $calendar_stmt->execute();
             $calendar_stmt->close();
         }

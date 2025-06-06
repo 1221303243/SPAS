@@ -46,6 +46,33 @@ if ($_SESSION['role'] !== 'student') {
                     $month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('m');
                     $year = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
 
+                    // Get the student's id
+                    $user_id = $_SESSION['user_id'];
+                    $student_id = null;
+                    $stmt = $conn->prepare("SELECT student_id FROM students WHERE user_id = ?");
+                    $stmt->bind_param("i", $user_id);
+                    $stmt->execute();
+                    $stmt->bind_result($student_id);
+                    $stmt->fetch();
+                    $stmt->close();
+
+                    // Get subject_ids the student is enrolled in
+                    $subject_ids = [];
+                    $stmt = $conn->prepare("
+                        SELECT DISTINCT s.subject_id
+                        FROM student_classes sc
+                        JOIN classes c ON sc.class_id = c.class_id
+                        JOIN subjects s ON c.subject_id = s.subject_id
+                        WHERE sc.student_id = ?
+                    ");
+                    $stmt->bind_param("i", $student_id);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    while ($row = $result->fetch_assoc()) {
+                        $subject_ids[] = $row['subject_id'];
+                    }
+                    $stmt->close();
+
                     // Create calendar header
                     $monthName = date('F', mktime(0, 0, 0, $month, 1, $year));
                     echo "<div class='calendar-header'>";
@@ -88,21 +115,25 @@ if ($_SESSION['role'] !== 'student') {
                     $currentDay = 1;
                     $cells = 0;
 
-                    // Load events from database
+                    // Prepare events array
                     $events = [];
                     $monthStart = sprintf('%04d-%02d-01', $year, $month);
                     $monthEnd = date('Y-m-t', strtotime($monthStart));
 
-                    $stmt = $conn->prepare("SELECT event_date, event_text FROM calendar_events WHERE event_date BETWEEN ? AND ?");
-                    $stmt->bind_param("ss", $monthStart, $monthEnd);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-
-                    while ($row = $result->fetch_assoc()) {
-                        // Store the event with the date in YYYY-MM-DD format
-                        $events[$row['event_date']] = $row['event_text'];
+                    if (count($subject_ids) > 0) {
+                        $in = implode(',', array_fill(0, count($subject_ids), '?'));
+                        $types = str_repeat('i', count($subject_ids));
+                        $query = "SELECT event_date, event_text FROM calendar_events WHERE event_date BETWEEN ? AND ? AND subject_id IN ($in)";
+                        $stmt = $conn->prepare($query);
+                        $params = array_merge([$monthStart, $monthEnd], $subject_ids);
+                        $stmt->bind_param("ss$types", ...$params);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        while ($row = $result->fetch_assoc()) {
+                            $events[$row['event_date']] = $row['event_text'];
+                        }
+                        $stmt->close();
                     }
-                    $stmt->close();
 
                     // Helper to get event for a date
                     function getEvent($year, $month, $day, $events) {
@@ -381,23 +412,45 @@ if ($_SESSION['role'] !== 'student') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['date'])) {
         $date = $_POST['date'];
         $event = trim($_POST['event']);
-    
-        if ($event) {
+        // Get the student's id
+        $user_id = $_SESSION['user_id'];
+        $student_id = null;
+        $stmt = $conn->prepare("SELECT student_id FROM students WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $stmt->bind_result($student_id);
+        $stmt->fetch();
+        $stmt->close();
+        // Get subject_ids the student is enrolled in
+        $subject_ids = [];
+        $stmt = $conn->prepare("
+            SELECT DISTINCT s.subject_id
+            FROM student_classes sc
+            JOIN classes c ON sc.class_id = c.class_id
+            JOIN subjects s ON c.subject_id = s.subject_id
+            WHERE sc.student_id = ?
+        ");
+        $stmt->bind_param("i", $student_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $subject_ids[] = $row['subject_id'];
+        }
+        $stmt->close();
+        // Use the first subject_id as default for event creation (for backward compatibility)
+        $subject_id = count($subject_ids) > 0 ? $subject_ids[0] : null;
+        if ($event && $subject_id) {
             // Insert or update event
-            $stmt = $conn->prepare("INSERT INTO calendar_events (event_date, event_text) 
-                                VALUES (?, ?) 
-                                ON DUPLICATE KEY UPDATE event_text = ?");
-            $stmt->bind_param("sss", $date, $event, $event);
-        } else {
+            $stmt = $conn->prepare("INSERT INTO calendar_events (event_date, event_text, subject_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE event_text = ?, subject_id = ?");
+            $stmt->bind_param("ssisi", $date, $event, $subject_id, $event, $subject_id);
+        } else if (!$event) {
             // Delete event if text is empty
             $stmt = $conn->prepare("DELETE FROM calendar_events WHERE event_date = ?");
             $stmt->bind_param("s", $date);
         }
-    
         // Execute query and check success
-        $success = $stmt->execute();
-        $stmt->close();
-        
+        $success = isset($stmt) ? $stmt->execute() : false;
+        if (isset($stmt)) $stmt->close();
         // Ensure to return a valid JSON response
         header('Content-Type: application/json');
         if ($success) {
