@@ -39,19 +39,19 @@ $stmt->close();
             <div class="user-list">
                 <a href="student_dashboard.php" class="course-link">
                     <i class="bi bi-journal-bookmark"></i>
-                    <div class="text-wrapper">Courses</div>
+                    <div class="text-wrapper">My Classes</div>
                 </a>
             </div>
             <div class="user-list">
                 <a href="calendar.php" class="course-link">
                     <i class="bi bi-calendar-event"></i>
-                    <div class="text-wrapper">Calendar</div>
+                    <div class="text-wrapper">Assessment Calendar</div>
                 </a>
             </div>
         </div>
         <div class="user">
             <div class="frame">
-                <img class="profile-pic" src="../../img/Profile Pic.png" />
+                <!-- <img class="profile-pic" src="../../img/Profile Pic.png" /> -->
                 <div class="group">
                 <div class="text-wrapper-3"><?php echo htmlspecialchars($student_name); ?></div>
                 </div>
