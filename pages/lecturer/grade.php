@@ -173,7 +173,10 @@ if ($selected_class_id > 0) {
                             <div class="input-group">
                                 <select class="form-select" id="assessmentSelect" name="assessment_id" required>
                                     <option value="" selected disabled>Choose assessment type...</option>
-                                    <?php if (empty($assessments)): ?>
+                                    <?php 
+                                    $selected_assessment_id = isset($_GET['assessment_id']) ? intval($_GET['assessment_id']) : (isset($_POST['assessment_id']) ? intval($_POST['assessment_id']) : '');
+                                    if (empty($assessments)):
+                                    ?>
                                         <option value="" disabled>No assessments configured for this subject</option>
                                     <?php else: ?>
                                         <optgroup label="Coursework">
@@ -181,7 +184,8 @@ if ($selected_class_id > 0) {
                                                 <?php if ($assessment['category'] === 'coursework'): ?>
                                                     <option value="<?php echo $assessment['assessment_id']; ?>" 
                                                             data-weightage="<?php echo $assessment['weightage']; ?>"
-                                                            data-category="<?php echo $assessment['category']; ?>">
+                                                            data-category="<?php echo $assessment['category']; ?>"
+                                                            <?php echo ($selected_assessment_id == $assessment['assessment_id']) ? 'selected' : ''; ?>>
                                                         <?php echo htmlspecialchars($assessment['assessment_type'] . ' (' . $assessment['weightage'] . '%)'); ?>
                                                     </option>
                                                 <?php endif; ?>
@@ -192,7 +196,8 @@ if ($selected_class_id > 0) {
                                                 <?php if ($assessment['category'] === 'final_exam'): ?>
                                                     <option value="<?php echo $assessment['assessment_id']; ?>"
                                                             data-weightage="<?php echo $assessment['weightage']; ?>"
-                                                            data-category="<?php echo $assessment['category']; ?>">
+                                                            data-category="<?php echo $assessment['category']; ?>"
+                                                            <?php echo ($selected_assessment_id == $assessment['assessment_id']) ? 'selected' : ''; ?>>
                                                         <?php echo htmlspecialchars($assessment['assessment_type'] . ' (' . $assessment['weightage'] . '%)'); ?>
                                                     </option>
                                                 <?php endif; ?>
@@ -322,69 +327,33 @@ if ($selected_class_id > 0) {
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('gradeForm');
         const assessmentSelect = document.getElementById('assessmentSelect');
+        const classSelect = document.getElementById('classSelect');
         const loadGradesBtn = document.getElementById('loadGradesBtn');
         const submitBtn = document.getElementById('submitBtn');
         const resetBtn = document.getElementById('resetBtn');
         const assessmentSummary = document.getElementById('assessmentSummary');
         const gradeInputs = document.querySelectorAll('.grade-input');
         
-        // Enable/disable load grades button based on assessment selection
+        // When assessment is selected, reload page with class_id and assessment_id in URL
         assessmentSelect.addEventListener('change', function() {
-            loadGradesBtn.disabled = !this.value;
-            submitBtn.disabled = true;
-            resetForm();
+            const classId = classSelect.value;
+            const assessmentId = this.value;
+            if (assessmentId) {
+                window.location.href = `grade.php?class_id=${classId}&assessment_id=${assessmentId}`;
+            }
         });
 
-        // Load current grades
-        loadGradesBtn.addEventListener('click', function() {
-            const assessmentId = assessmentSelect.value;
-            if (!assessmentId) return;
+        // Helper to get selected weightage
+        function getSelectedWeightage() {
+            const selectedOption = assessmentSelect.selectedOptions[0];
+            return selectedOption ? parseFloat(selectedOption.getAttribute('data-weightage')) || 0 : 0;
+        }
 
-            // Show loading state
-            loadGradesBtn.disabled = true;
-            loadGradesBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Loading...';
-
-            // Fetch current grades
-            fetch(`get_grades.php?assessment_id=${assessmentId}&class_id=<?php echo $selected_class_id; ?>`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update assessment summary
-                        assessmentSummary.classList.remove('d-none');
-                        document.getElementById('assessmentCategory').textContent = data.assessment.category;
-                        document.getElementById('assessmentWeightage').textContent = data.assessment.weightage;
-                        document.getElementById('assessmentDueDate').textContent = data.assessment.due_date;
-
-                        // Update grades
-                        data.grades.forEach(grade => {
-                            const input = document.querySelector(`input[data-student-id="${grade.student_id}"]`);
-                            if (input) {
-                                input.value = grade.marks || '';
-                                updateWeightedScore(grade.student_id, grade.marks);
-                            }
-                        });
-
-                        // Enable submit button
-                        submitBtn.disabled = false;
-                    } else {
-                        alert('Error loading grades: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error loading grades. Please try again.');
-                })
-                .finally(() => {
-                    loadGradesBtn.disabled = false;
-                    loadGradesBtn.innerHTML = '<i class="bi bi-check-circle"></i> Load Current Grades';
-                });
-        });
-
-        // Calculate weighted scores and statistics
+        // Update weighted score for a student
         function updateWeightedScore(studentId, marks) {
-            const weightage = parseFloat(assessmentSelect.selectedOptions[0].dataset.weightage) || 0;
+            const weightage = getSelectedWeightage();
             const weightedScore = (marks * weightage / 100).toFixed(2);
-            document.querySelector(`.weighted-score[data-student-id="${studentId}"]`).textContent = weightedScore;
+            document.querySelector(`.weighted-score[data-student-id="${studentId}"]`).textContent = isNaN(weightedScore) ? '-' : weightedScore;
             updateStatistics();
         }
 
@@ -399,6 +368,10 @@ if ($selected_class_id > 0) {
                 document.getElementById('classAverage').textContent = average.toFixed(2);
                 document.getElementById('highestScore').textContent = Math.max(...marks).toFixed(2);
                 document.getElementById('lowestScore').textContent = Math.min(...marks).toFixed(2);
+            } else {
+                document.getElementById('classAverage').textContent = '-';
+                document.getElementById('highestScore').textContent = '-';
+                document.getElementById('lowestScore').textContent = '-';
             }
         }
 
@@ -430,6 +403,15 @@ if ($selected_class_id > 0) {
                 }
             });
         });
+
+        // Update weighted scores if assessment changes (after reload)
+        if (assessmentSelect.value) {
+            gradeInputs.forEach(input => {
+                if (input.value) {
+                    updateWeightedScore(input.dataset.studentId, parseFloat(input.value));
+                }
+            });
+        }
 
         // Form submission validation
         form.addEventListener('submit', function(event) {
