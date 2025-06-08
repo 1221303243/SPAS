@@ -3,6 +3,7 @@ session_start();
 // include('../../logic/db-connection.php');
 // $conn = OpenCon();
 require_once '../../auth/db_connection.php';
+require_once '../../config/academic_config.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../../auth/index.php");
@@ -21,8 +22,15 @@ if (!isset($_GET['code'])) {
 
 $subjectCode = $_GET['code'];
 
-// Get student_id (assuming user_id in session is student_id)
-$student_id = $_SESSION['user_id'];
+// Get the actual student_id for the logged-in user
+$user_id = $_SESSION['user_id'];
+$student_id = null;
+$stmt = $conn->prepare("SELECT student_id FROM students WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($student_id);
+$stmt->fetch();
+$stmt->close();
 
 // Get subject_id from subject code
 $subject_id = null;
@@ -42,7 +50,9 @@ $stmt->bind_result($subjectName);
 $stmt->fetch();
 $stmt->close();
 
-$semester_start = new DateTime('2025-03-10'); // Adjust as needed
+$semester_start = new DateTime(SEMESTER_START_DATE);
+$semester_end = clone $semester_start;
+$semester_end->modify('+' . (SEMESTER_WEEKS - 1) . ' weeks');
 
 // Get all assessments for this subject
 $assessments = [];
@@ -77,18 +87,21 @@ if (!empty($assessments)) {
     $stmt->close();
 }
 
-// Calculate weekly grades (percentage)
-$weekly_grades = [];
-for ($week = 1; $week <= 14; $week++) {
-    $week_total = 0;
-    $week_max = 0;
-    foreach ($assessments as $a) {
-        if ($a['week'] == $week) {
-            $week_max += $a['weightage'];
-            $week_total += isset($marks[$a['assessment_id']]) ? ($marks[$a['assessment_id']] / 100) * $a['weightage'] : 0;
-        }
-    }
-    $weekly_grades[$week] = $week_max > 0 ? round(($week_total / $week_max) * 100, 2) : null;
+// Get class_id for this student and subject
+$class_id = null;
+if ($subject_id) {
+    $stmt = $conn->prepare("
+        SELECT sc.class_id
+        FROM student_classes sc
+        JOIN classes c ON sc.class_id = c.class_id
+        WHERE sc.student_id = ? AND c.subject_id = ?
+        LIMIT 1
+    ");
+    $stmt->bind_param("ii", $student_id, $subject_id);
+    $stmt->execute();
+    $stmt->bind_result($class_id);
+    $stmt->fetch();
+    $stmt->close();
 }
 
 ?>
@@ -101,25 +114,27 @@ for ($week = 1; $week <= 14; $week++) {
     <link rel="stylesheet" href="../../css/course_content.css" />
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
+        var semesterStartDate = new Date('<?php echo SEMESTER_START_DATE; ?>');
+        var semesterEndDate = new Date('<?php echo $semester_end->format('Y-m-d'); ?>');
         google.charts.load('current', {'packages':['corechart']});
         google.charts.setOnLoadCallback(drawChart);
 
         function drawChart() {
-            fetch('get_chart_data.php?code=<?php echo urlencode($subjectCode); ?>')
+            fetch('get_chart_data.php?code=<?php echo urlencode($subjectCode); ?>&class_id=<?php echo $class_id; ?>')
                 .then(response => response.json())
                 .then(grades_by_date => {
                     console.log('grades_by_date:', grades_by_date); // DEBUG
                     var data = new google.visualization.DataTable();
                     data.addColumn('date', 'Date');
-                    data.addColumn('number', 'Your Grade');
+                    data.addColumn('number', 'Your Mark');
                     data.addColumn('number', 'Passing Grade');
 
                     grades_by_date.forEach(function(grade) {
-                        if (grade.date && grade.percentage !== null) {
+                        if (grade.date && grade.percentage != null) {
                             // Parse date string (YYYY-MM-DD) to JS Date object
                             var parts = grade.date.split('-');
                             var jsDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                            data.addRow([jsDate, grade.percentage, 50]);
+                            data.addRow([jsDate, Number(grade.percentage), 50]);
                         }
                     });
 
@@ -136,7 +151,11 @@ for ($week = 1; $week <= 14; $week++) {
                             gridlines: { count: -1 },
                             minorGridlines: { count: 0 },
                             slantedText: true,
-                            slantedTextAngle: 45
+                            slantedTextAngle: 45,
+                            viewWindow: {
+                                min: semesterStartDate,
+                                max: semesterEndDate
+                            }
                         },
                         vAxis: { 
                             title: 'Grade (%)',
@@ -181,18 +200,6 @@ for ($week = 1; $week <= 14; $week++) {
         }
         // Auto-refresh every 10 seconds
         setInterval(drawChart, 10000);
-    </script>
-    <script>
-    console.log([
-        ['Week', 'Grade'],
-        <?php
-        for ($week = 1; $week <= 14; $week++) {
-            $grade = $weekly_grades[$week];
-            echo "[$week, " . ($grade !== null ? $grade : "null") . "]";
-            if ($week < 14) echo ",";
-        }
-        ?>
-    ]);
     </script>
 </head>
 <body>

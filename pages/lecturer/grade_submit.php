@@ -58,16 +58,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         foreach ($grades as $student_id => $marks) {
+            // Calculate weighted mark for this assessment
+            $weighted_marks = $marks * $assessment['weightage'] / 100;
             // Save the marks for this assessment
             $stmt = $conn->prepare('
-                INSERT INTO grades (student_id, subject_id, assessment_id, class_id, marks, category, date_recorded)
-                VALUES (?, ?, ?, ?, ?, ?, CURDATE())
+                INSERT INTO grades (student_id, subject_id, assessment_id, class_id, marks, weighted_marks, category, date_recorded)
+                VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())
                 ON DUPLICATE KEY UPDATE 
                     marks = VALUES(marks), 
+                    weighted_marks = VALUES(weighted_marks),
                     category = VALUES(category), 
                     date_recorded = CURDATE()
             ');
-            $stmt->bind_param('iiiids', $student_id, $assessment['subject_id'], $assessment_id, $class_id, $marks, $assessment['category']);
+            $stmt->bind_param('iiiidss', $student_id, $assessment['subject_id'], $assessment_id, $class_id, $marks, $weighted_marks, $assessment['category']);
             $stmt->execute();
             $stmt->close();
 
@@ -158,6 +161,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $stmt->execute();
             $stmt->close();
+
+            // After saving the current assessment's marks and weighted_marks...
+            // 1. Get all assessments for this subject, ordered by due date
+            $assessments_sql = "
+                SELECT a.assessment_id, a.due_date
+                FROM assessment_plans a
+                WHERE a.subject_id = ?
+                ORDER BY a.due_date ASC, a.assessment_id ASC
+            ";
+            $assessments_stmt = $conn->prepare($assessments_sql);
+            $assessments_stmt->bind_param('i', $assessment['subject_id']);
+            $assessments_stmt->execute();
+            $assessments_result = $assessments_stmt->get_result();
+            $assessment_ids = [];
+            while ($row = $assessments_result->fetch_assoc()) {
+                $assessment_ids[] = $row['assessment_id'];
+            }
+            $assessments_stmt->close();
+
+            // 2. Find the index of the current assessment
+            $current_index = array_search($assessment_id, $assessment_ids);
+            if ($current_index !== false) {
+                // 3. Get all previous and current assessment ids
+                $included_ids = array_slice($assessment_ids, 0, $current_index + 1);
+
+                // 4. Sum weighted_marks for these assessments
+                $in = implode(',', array_fill(0, count($included_ids), '?'));
+                $types = str_repeat('i', count($included_ids) + 3);
+                $params = array_merge([$student_id, $assessment['subject_id'], $class_id], $included_ids);
+
+                $sum_sql = "
+                    SELECT SUM(weighted_marks) as cumulative_total
+                    FROM grades
+                    WHERE student_id = ? AND subject_id = ? AND class_id = ? AND assessment_id IN ($in)
+                ";
+                $sum_stmt = $conn->prepare($sum_sql);
+                $sum_stmt->bind_param($types, ...$params);
+                $sum_stmt->execute();
+                $sum_result = $sum_stmt->get_result()->fetch_assoc();
+                $sum_stmt->close();
+
+                $cumulative_total = $sum_result['cumulative_total'] ?? 0;
+
+                // 5. Update total_marks for the current assessment row
+                $update_sql = "
+                    UPDATE grades
+                    SET total_marks = ?
+                    WHERE student_id = ? AND subject_id = ? AND class_id = ? AND assessment_id = ?
+                ";
+                $update_stmt = $conn->prepare($update_sql);
+                $update_stmt->bind_param('diiii', $cumulative_total, $student_id, $assessment['subject_id'], $class_id, $assessment_id);
+                $update_stmt->execute();
+                $update_stmt->close();
+            }
         }
 
         // Commit transaction
@@ -176,6 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         // Rollback transaction on error
         $conn->rollback();
+        error_log('Grade save error: ' . $e->getMessage()); // Log the actual error
         $_SESSION['error'] = "An error occurred while saving grades. Please try again.";
         header('Location: grade.php?class_id=' . $class_id);
         exit();

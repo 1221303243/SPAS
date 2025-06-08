@@ -69,7 +69,7 @@ $stmt->close();
         </div>
         <div class="user">
             <div class="frame">
-                <img class="profile-pic" src="../../img/Profile Pic.png" />
+                <!-- <img class="profile-pic" src="../../img/Profile Pic.png" /> -->
                 <div class="group">
                     <div class="text-wrapper-3"><?php echo htmlspecialchars($lecturer_name); ?></div>
                 </div>

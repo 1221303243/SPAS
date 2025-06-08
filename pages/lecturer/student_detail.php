@@ -83,13 +83,17 @@ while ($row = $result->fetch_assoc()) {
     
     // Calculate totals
     if ($row['category'] === 'coursework') {
-        if ($row['marks'] !== null) {
-            $coursework_total += $row['marks'];
+        if (isset($row['weighted_marks']) && $row['weighted_marks'] !== null) {
+            $coursework_total += $row['weighted_marks'];
+        } elseif ($row['marks'] !== null) {
+            $coursework_total += $row['marks'] * $row['weightage'] / 100;
         }
         $coursework_weight += $row['weightage'];
     } else {
-        if ($row['marks'] !== null) {
-            $final_exam_total += $row['marks'];
+        if (isset($row['weighted_marks']) && $row['weighted_marks'] !== null) {
+            $final_exam_total += $row['weighted_marks'];
+        } elseif ($row['marks'] !== null) {
+            $final_exam_total += $row['marks'] * $row['weightage'] / 100;
         }
         $final_exam_weight += $row['weightage'];
     }
@@ -107,22 +111,35 @@ $coursework_status = $coursework_percentage >= 50 ? 'PASS' : 'FAIL';
 $final_exam_status = $final_exam_percentage >= 50 ? 'PASS' : 'FAIL';
 $overall_status = ($coursework_percentage >= 50 && $final_exam_percentage >= 50) ? 'PASS' : 'FAIL';
 
-// Get the final grade
-$final_grade = '';
-if ($overall_status === 'PASS') {
-    if ($overall_percentage >= 90) $final_grade = 'A+';
-    elseif ($overall_percentage >= 85) $final_grade = 'A';
-    elseif ($overall_percentage >= 80) $final_grade = 'A-';
-    elseif ($overall_percentage >= 75) $final_grade = 'B+';
-    elseif ($overall_percentage >= 70) $final_grade = 'B';
-    elseif ($overall_percentage >= 65) $final_grade = 'B-';
-    elseif ($overall_percentage >= 60) $final_grade = 'C+';
-    elseif ($overall_percentage >= 55) $final_grade = 'C';
-    elseif ($overall_percentage >= 50) $final_grade = 'C-';
-    else $final_grade = 'D';
-} else {
-    $final_grade = 'F';
+// Get the final grade from the grades table
+$grade_sql = "
+    SELECT grade
+    FROM grades
+    WHERE student_id = ? AND class_id = ?
+    ORDER BY date_recorded DESC, grade_id DESC
+    LIMIT 1
+";
+$grade_stmt = $conn->prepare($grade_sql);
+$grade_stmt->bind_param("ii", $student_id, $class_id);
+$grade_stmt->execute();
+$grade_result = $grade_stmt->get_result();
+$grade_row = $grade_result->fetch_assoc();
+$grade_stmt->close();
+
+$final_grade = $grade_row ? $grade_row['grade'] : '';
+
+// Map grade to Bootstrap color class
+function getGradeColorClass($grade) {
+    if (in_array($grade, ['A+', 'A', 'A-'])) {
+        return 'bg-success'; // Green
+    } elseif (in_array($grade, ['B+', 'B', 'B-', 'C+', 'C', 'C-', 'D'])) {
+        return 'bg-warning text-dark'; // Yellow/Orange
+    } elseif (in_array($grade, ['E', 'F'])) {
+        return 'bg-danger'; // Red
+    }
+    return 'bg-secondary'; // Default/gray
 }
+$grade_color_class = getGradeColorClass($final_grade);
 
 // Add this after the existing PHP code, before the HTML
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_grade') {
@@ -219,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                     <div class="col-md-6 text-md-end">
                         <h4 class="mb-3">Final Grade</h4>
-                        <span class="badge grade-badge <?= $overall_status === 'PASS' ? 'bg-success' : 'bg-danger' ?>">
+                        <span class="badge grade-badge <?= $grade_color_class ?>">
                             <?= $final_grade ?>
                         </span>
                     </div>
@@ -287,7 +304,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 <h6 class="card-title"><?= htmlspecialchars($assessment['assessment_type']) ?></h6>
                                 <p class="text-muted mb-2">Weight: <?= $assessment['weightage'] ?>%</p>
                                 <?php if ($assessment['marks'] !== null): ?>
-                                    <h3 class="mb-2"><?= number_format($assessment['marks'], 1) ?>%</h3>
+                                    <h3 class="mb-2">
+                                        <?php 
+                                        if (isset($assessment['weighted_marks'])) {
+                                            echo number_format($assessment['weighted_marks'], 1) . '%';
+                                        } else {
+                                            // fallback for old records
+                                            echo number_format($assessment['marks'] * $assessment['weightage'] / 100, 1) . '%';
+                                        }
+                                        ?>
+                                    </h3>
                                     <p class="text-muted mb-0">
                                         Date: <?= date('d M Y', strtotime($assessment['date_recorded'])) ?>
                                     </p>
@@ -375,7 +401,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 <h6 class="card-title"><?= htmlspecialchars($assessment['assessment_type']) ?></h6>
                                 <p class="text-muted mb-2">Weight: <?= $assessment['weightage'] ?>%</p>
                                 <?php if ($assessment['marks'] !== null): ?>
-                                    <h3 class="mb-2"><?= number_format($assessment['marks'], 1) ?>%</h3>
+                                    <h3 class="mb-2">
+                                        <?php 
+                                        if (isset($assessment['weighted_marks'])) {
+                                            echo number_format($assessment['weighted_marks'], 1) . '%';
+                                        } else {
+                                            // fallback for old records
+                                            echo number_format($assessment['marks'] * $assessment['weightage'] / 100, 1) . '%';
+                                        }
+                                        ?>
+                                    </h3>
                                     <p class="text-muted mb-0">
                                         Date: <?= date('d M Y', strtotime($assessment['date_recorded'])) ?>
                                     </p>

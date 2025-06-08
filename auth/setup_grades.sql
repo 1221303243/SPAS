@@ -9,6 +9,7 @@ CREATE TABLE grades (
     assessment_id INT NOT NULL,
     class_id INT NOT NULL,
     marks DECIMAL(5,2) NOT NULL,
+    weighted_marks DECIMAL(5,2) DEFAULT NULL,
     category ENUM('coursework', 'final_exam') NOT NULL,
     coursework_total DECIMAL(5,2) DEFAULT NULL,
     final_exam_total DECIMAL(5,2) DEFAULT NULL,
