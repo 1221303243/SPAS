@@ -119,3 +119,15 @@ input:checked + .slider {
 input:checked + .slider:before {
     transform: translateX(26px);
 }
+
+#global-toast-container {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 1080;
+    min-width: 300px;
+    pointer-events: none;
+}
+#global-toast-container .toast {
+    pointer-events: auto;
+}

@@ -51,7 +51,8 @@ $stmt->close();
     <meta charset="utf-8" />
     <title>SPAS - My Courses</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="../../css/student_dashboard.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../css/dashboard.css" />
 </head>
 <body>
      <?php include 'sidebar_student.php'; ?>
@@ -83,5 +84,38 @@ $stmt->close();
         }
         ?>
     </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('get_reminder.php')
+        .then(res => res.json())
+        .then(data => {
+            if (data.reminder) {
+                // Create toast HTML if not present
+                let toastContainer = document.getElementById('global-toast-container');
+                if (!toastContainer) {
+                    toastContainer = document.createElement('div');
+                    toastContainer.id = 'global-toast-container';
+                    document.body.appendChild(toastContainer);
+                }
+                toastContainer.innerHTML = `
+                    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true"
+                         data-bs-autohide="true" data-bs-delay="6000" id="reminderToast">
+                        <div class="toast-header bg-info text-white">
+                            <strong class="me-auto">Upcoming Assessment</strong>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">${data.reminder}</div>
+                    </div>
+                `;
+                var reminderToast = document.getElementById('reminderToast');
+                var toast = new bootstrap.Toast(reminderToast);
+                toast.show();
+            }
+        });
+});
+</script>
 </body>
 </html>

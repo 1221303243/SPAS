@@ -13,6 +13,15 @@ if ($_SESSION['role'] !== 'lecturer') {
 
 require_once '../../auth/db_connection.php';
 
+$user_id = $_SESSION['user_id'];
+$lecturer_id = null;
+$stmt = $conn->prepare("SELECT lecturer_id FROM lecturers WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($lecturer_id);
+$stmt->fetch();
+$stmt->close();
+
 // Fetch classes taught by this lecturer
 $class_sql = "SELECT c.class_id, c.class_name, s.subject_name FROM classes c JOIN subjects s ON c.subject_id = s.subject_id WHERE c.lecturer_id = ?";
 $stmt = $conn->prepare($class_sql);
@@ -24,6 +33,7 @@ $stmt->close();
 
 // Fetch students and assessments if class is selected
 $students = $assessments = [];
+$selected_assessment_id = isset($_GET['assessment_id']) ? intval($_GET['assessment_id']) : null;
 if (isset($_GET['class_id'])) {
     $class_id = intval($_GET['class_id']);
     // Students
@@ -104,24 +114,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </option>
             <?php endforeach; ?>
         </select>
-    </form>
-    <?php if (isset($_GET['class_id'])): ?>
-    <form method="post" class="feedback-form">
-        <input type="hidden" name="class_id" value="<?php echo intval($_GET['class_id']); ?>" />
-        <label for="student_id">Student:</label>
-        <select name="student_id" id="student_id" required>
-            <option value="">Select Student</option>
-            <?php foreach ($students as $student): ?>
-                <option value="<?php echo $student['student_id']; ?>"><?php echo htmlspecialchars($student['name']); ?></option>
-            <?php endforeach; ?>
-        </select>
+        <?php if (isset($_GET['class_id'])): ?>
         <label for="assessment_id">Assessment:</label>
-        <select name="assessment_id" id="assessment_id" required>
+        <select name="assessment_id" id="assessment_id" onchange="this.form.submit()" required>
             <option value="">Select Assessment</option>
             <?php foreach ($assessments as $assessment): ?>
-                <option value="<?php echo $assessment['assessment_id']; ?>"><?php echo htmlspecialchars($assessment['assessment_type']); ?></option>
+                <option value="<?php echo $assessment['assessment_id']; ?>" <?php if ($selected_assessment_id == $assessment['assessment_id']) echo 'selected'; ?>><?php echo htmlspecialchars($assessment['assessment_type']); ?></option>
             <?php endforeach; ?>
         </select>
+        <?php endif; ?>
+    </form>
+    <?php
+    // Show student list if class and assessment are selected
+    if (isset($_GET['class_id']) && $selected_assessment_id) {
+        echo '<div class="student-list">';
+        foreach ($students as $student) {
+            // Check if feedback exists for this student/assessment/class
+            $feedback_exists = false;
+            $stmt = $conn->prepare("SELECT feedback_id FROM feedback WHERE student_id = ? AND assessment_id = ? AND class_id = ? AND feedback_status = 'published' LIMIT 1");
+            $stmt->bind_param('iii', $student['student_id'], $selected_assessment_id, $class_id);
+            $stmt->execute();
+            $stmt->store_result();
+            if ($stmt->num_rows > 0) {
+                $feedback_exists = true;
+            }
+            $stmt->close();
+            echo '<div class="student-list-item">';
+            echo '<div class="student-info">';
+            echo '<span class="feedback-indicator ' . ($feedback_exists ? 'done' : 'not-done') . '">' . ($feedback_exists ? '&#10003;' : '&#10007;') . '</span>';
+            echo htmlspecialchars($student['name']);
+            echo '</div>';
+            // Button to open feedback form for this student/assessment
+            $url = '?class_id=' . $class_id . '&assessment_id=' . $selected_assessment_id . '&student_id=' . $student['student_id'];
+            echo '<a href="' . $url . '" class="input-feedback-btn">' . ($feedback_exists ? 'Edit Feedback' : 'Input Feedback') . '</a>';
+            echo '</div>';
+        }
+        echo '</div>';
+    }
+    // Show feedback form if student is selected
+    if (isset($_GET['class_id']) && $selected_assessment_id && isset($_GET['student_id'])) {
+    ?>
+    <form method="post" class="feedback-form" id="feedbackForm">
+        <button type="button" class="close-feedback-btn" onclick="closeFeedbackForm()">&times; Close</button>
+        <input type="hidden" name="class_id" value="<?php echo intval($_GET['class_id']); ?>" />
+        <input type="hidden" name="assessment_id" value="<?php echo intval($_GET['assessment_id']); ?>" />
+        <input type="hidden" name="student_id" value="<?php echo intval($_GET['student_id']); ?>" />
+        <label>Student:</label>
+        <div style="font-weight:700; margin-bottom:8px; color:#1976d2;">
+            <?php
+            foreach ($students as $student) {
+                if ($student['student_id'] == $_GET['student_id']) {
+                    echo htmlspecialchars($student['name']);
+                    break;
+                }
+            }
+            ?>
+        </div>
         <label for="strengths">Strengths:</label>
         <textarea name="strengths" id="strengths" rows="3" required></textarea>
         <label for="areas_for_improvement">Areas for Improvement:</label>
@@ -134,7 +182,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <textarea name="general_comments" id="general_comments" rows="2"></textarea>
         <button type="submit" class="submit-btn">Submit Feedback</button>
     </form>
-    <?php endif; ?>
+    <script>
+    function closeFeedbackForm() {
+        // Remove student_id from URL and reload
+        const url = new URL(window.location.href);
+        url.searchParams.delete('student_id');
+        window.location.href = url.toString();
+    }
+    // Optionally, after successful submit, auto-close the form
+    if (document.querySelector('.success-message')) {
+        setTimeout(closeFeedbackForm, 1200);
+    }
+    </script>
+    <?php } ?>
 </div>
 </body>
 </html> 
