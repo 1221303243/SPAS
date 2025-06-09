@@ -66,6 +66,12 @@ $stmt->close();
                     <div class="text-wrapper">Assessment</div>
                 </a>
             </div>
+            <div class="user-list">
+                <a href="feedback_input.php" class="course-link">
+                    <i class="bi bi-chat-dots"></i>
+                    <div class="text-wrapper">Input Feedback</div>
+                </a>
+            </div>
         </div>
         <div class="user">
             <div class="frame">
