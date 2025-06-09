@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="../../css/feedback.css">
 </head>
 <body>
-    <?php include 'sidebar_lecturer.php'; ?>
     <div class="container">
         <h2>Student Name</h2>
         <div class="button-container">
