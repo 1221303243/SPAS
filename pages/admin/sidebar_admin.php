@@ -13,15 +13,27 @@
         </div>
         <div class="navigation">
             <div class="user-list">
-                <a href="student_dashboard.php" class="course-link">
-                    <i class="bi bi-journal-bookmark"></i>
-                    <div class="text-wrapper">My Classes</div>
+                <a href="dashboard.php" class="course-link">
+                    <i class="bi bi-speedometer2"></i>
+                    <div class="text-wrapper">Dashboard</div>
                 </a>
             </div>
             <div class="user-list">
-                <a href="calendar.php" class="course-link">
-                    <i class="bi bi-calendar-event"></i>
-                    <div class="text-wrapper">Assessment Calendar</div>
+                <a href="admin.php" class="course-link">
+                    <i class="bi bi-people"></i>
+                    <div class="text-wrapper">Users</div>
+                </a>
+            </div>
+            <div class="user-list">
+                <a href="subjects.php" class="course-link">
+                    <i class="bi bi-journal-bookmark"></i>
+                    <div class="text-wrapper">Subjects</div>
+                </a>
+            </div>
+            <div class="user-list">
+                <a href="classes.php" class="course-link">
+                    <i class="bi bi-easel"></i>
+                    <div class="text-wrapper">Classes</div>
                 </a>
             </div>
         </div>
