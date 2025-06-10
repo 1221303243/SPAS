@@ -1,51 +1,57 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="../../css/sidebar.css" />
-    <style>
-        /* This ensures the sidebar doesn't affect document flow */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 318px;
-            height: 100vh;
-            z-index: 1000;
-        }
-    </style>
+    <link rel="stylesheet" href="../../css/sidebar_student.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Rowdies:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
-
 <body>
-
     <div class="sidebar">
-        <div class="div">
-            <div class="navigation">
-                <div class="user-list">
-                    <img class="vector" src="../../img/vector.png" />
-                    <div class="text-wrapper">User List</div>
-                </div>
-                <div class="all-courses">
-                    <img class="img" src="../../img/vector-1.png" />
-                    <div class="text-wrapper-2">All Course</div>
+        <div class="brand">
+            <div class="text-wrapper-spas">SPAS</div>
+        </div>
+        <div class="navigation">
+            <div class="user-list">
+                <a href="student_dashboard.php" class="course-link">
+                    <i class="bi bi-journal-bookmark"></i>
+                    <div class="text-wrapper">My Classes</div>
+                </a>
+            </div>
+            <div class="user-list">
+                <a href="calendar.php" class="course-link">
+                    <i class="bi bi-calendar-event"></i>
+                    <div class="text-wrapper">Assessment Calendar</div>
+                </a>
+            </div>
+        </div>
+        <div class="user">
+            <div class="frame">
+                <!-- <img class="profile-pic" src="../../img/Profile Pic.png" /> -->
+                <div class="group">
+                <div class="text-wrapper-3">Admin</div>
                 </div>
             </div>
-            <div class="brand">
-                <!-- Added SPAS text here -->
-                <div class="text-wrapper-spas">SPAS</div>
-            </div>
-            <div class="user">
-                <div class="frame">
-                    <img class="profile-pic" src="../../img/Profile Pic.png" />
-                    <div class="group">
-                        <div class="text-wrapper-3">John Doe</div>
-                    </div>
+            <div class="settings-container">
+                <img class="vector-2" src="../../img/setting_white.png" onclick="toggleDropup(event)" />
+                <div class="dropup-menu" id="dropupMenu" style="display: none;">
+                    <a href="../../auth/logout.php" class="dropup-item logout">Logout</a>
                 </div>
-                <img class="vector-2" src="../../img/setting_white.png" />
             </div>
         </div>
     </div>
+    <script>
+        function toggleDropup(event) {
+            event.stopPropagation();
+            const dropupMenu = document.getElementById('dropupMenu');
+            dropupMenu.style.display = (dropupMenu.style.display === 'block') ? 'none' : 'block';
+        }
+        window.onclick = function(event) {
+            if (!event.target.matches('.vector-2')) {
+                const dropupMenu = document.getElementById('dropupMenu');
+                if (dropupMenu) dropupMenu.style.display = 'none';
+            }
+        }
+    </script>
 </body>
-
 </html>

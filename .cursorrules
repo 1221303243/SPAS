@@ -1,0 +1,118 @@
+# SPAS Admin Dashboard - Cursor Rules
+
+## Project Overview
+SPAS (Student Performance Assessment System) is a PHP-based web application with an admin dashboard for managing users, subjects, and classes.
+
+## Project Structure
+```
+SPAS/
+├── pages/
+│   └── admin/
+│       ├── dashboard.php          # Main admin dashboard
+│       ├── admin.php              # User management
+│       ├── subjects.php           # Subject management
+│       ├── classes.php            # Class management
+│       └── sidebar_admin.php      # Admin sidebar navigation
+├── css/
+│   ├── admin_dashboard.css        # Dashboard styling
+│   ├── admin_users.css            # User management styling
+│   ├── admin_subjects.css         # Subject management styling
+│   ├── admin_classes.css          # Class management styling
+│   └── admin.css                  # Legacy admin styling
+├── database/
+├── config/
+└── auth/
+```
+
+## Coding Guidelines
+
+### PHP Files
+- Use PHP 7.4+ syntax
+- Include proper HTML structure with DOCTYPE
+- Use Material Icons for UI elements
+- Include sidebar_admin.php in all admin pages
+- Use consistent naming: lowercase with underscores
+- Add proper comments for sample data sections
+
+### CSS Guidelines
+- Use modern CSS with flexbox and grid
+- Follow BEM-like naming conventions
+- Use CSS custom properties for colors
+- Implement responsive design with mobile-first approach
+- Use consistent spacing: 8px base unit
+- Include hover states and transitions
+- Add focus states for accessibility
+
+### Color Scheme
+- Primary: #00C1FE (blue)
+- Secondary: #1F1235 (dark blue)
+- Success: #28a745 (green)
+- Warning: #ffc107 (yellow)
+- Danger: #dc3545 (red)
+- Neutral: #6c757d (gray)
+- Background: #f8f9fa (light gray)
+
+### Component Patterns
+- Cards with hover effects and shadows
+- Modal dialogs for add/edit forms
+- Search and filter functionality
+- Status badges with color coding
+- Action buttons with icons
+- Responsive grid layouts
+
+### File Organization
+- Separate CSS files for each admin page
+- Consistent file naming: admin_[page].css
+- Modular component structure
+- Reusable utility classes
+
+### Responsive Design
+- Mobile-first approach
+- Breakpoints: 768px, 480px
+- Flexible grid systems
+- Touch-friendly interactions
+
+### Accessibility
+- Proper focus states
+- Semantic HTML structure
+- ARIA labels where needed
+- Keyboard navigation support
+- Screen reader compatibility
+
+### Performance
+- Optimized CSS selectors
+- Minimal JavaScript
+- Efficient DOM manipulation
+- Lazy loading for modals
+
+## Admin Dashboard Features
+- User management (add, edit, delete)
+- Subject management (add, edit, delete)
+- Class management (add, edit, delete)
+- Search and filter functionality
+- Status indicators
+- Modal forms for data entry
+- Responsive design
+- System status monitoring
+
+## Database Integration
+- Sample data arrays for demonstration
+- Prepared for MySQL integration
+- Consistent data structure
+- Foreign key relationships
+
+## Security Considerations
+- Input validation (to be implemented)
+- SQL injection prevention
+- XSS protection
+- CSRF tokens (to be implemented)
+- Role-based access control
+
+## Future Enhancements
+- Real database integration
+- User authentication
+- File upload functionality
+- Advanced filtering
+- Export/import features
+- Audit logging
+- Email notifications 
