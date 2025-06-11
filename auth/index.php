@@ -4,7 +4,7 @@ session_start();
 // If already logged in, redirect based on role
 if (isset($_SESSION['role'])) {
     if ($_SESSION['role'] == 'admin') {
-        header("Location: ../pages/admin/admin.php");
+        header("Location: ../pages/admin/dashboard.php");
         exit();
     } elseif ($_SESSION['role'] == 'student') {
         header("Location: ../pages/student/student_dashboard.php");

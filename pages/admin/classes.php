@@ -1,3 +1,83 @@
+<?php
+require_once '../../auth/db_connection.php';
+
+// Handle Add Class form submission
+$errors = [];
+$success = false;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_class'])) {
+    $class_name = trim($_POST['className']);
+    $subject_id = intval($_POST['subject']);
+    $lecturer_id = intval($_POST['lecturer']);
+    if (!$class_name || !$subject_id || !$lecturer_id) {
+        $errors[] = 'All fields are required.';
+    } else {
+        $stmt = $conn->prepare("INSERT INTO classes (class_name, subject_id, lecturer_id) VALUES (?, ?, ?)");
+        $stmt->bind_param("sii", $class_name, $subject_id, $lecturer_id);
+        if ($stmt->execute()) {
+            $success = true;
+            header('Location: classes.php?success=1');
+            exit();
+        } else {
+            $errors[] = 'Failed to add class: ' . $conn->error;
+        }
+        $stmt->close();
+    }
+}
+
+// Handle Edit Class form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_class'])) {
+    $edit_class_id = intval($_POST['edit_class_id']);
+    $edit_class_name = trim($_POST['edit_className']);
+    $edit_subject_id = intval($_POST['edit_subject']);
+    $edit_lecturer_id = intval($_POST['edit_lecturer']);
+    if (!$edit_class_id || !$edit_class_name || !$edit_subject_id || !$edit_lecturer_id) {
+        $errors[] = 'All fields are required for editing.';
+    } else {
+        $stmt = $conn->prepare("UPDATE classes SET class_name=?, subject_id=?, lecturer_id=? WHERE class_id=?");
+        $stmt->bind_param("siii", $edit_class_name, $edit_subject_id, $edit_lecturer_id, $edit_class_id);
+        if ($stmt->execute()) {
+            header('Location: classes.php?success=2');
+            exit();
+        } else {
+            $errors[] = 'Failed to update class: ' . $conn->error;
+        }
+        $stmt->close();
+    }
+}
+
+// Handle Delete Class form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_class'])) {
+    $delete_class_id = intval($_POST['delete_class_id']);
+    if ($delete_class_id) {
+        $stmt = $conn->prepare("DELETE FROM classes WHERE class_id = ?");
+        $stmt->bind_param("i", $delete_class_id);
+        if ($stmt->execute()) {
+            header('Location: classes.php?success=3');
+            exit();
+        } else {
+            $errors[] = 'Failed to delete class: ' . $conn->error;
+        }
+        $stmt->close();
+    }
+}
+
+// Fetch all subjects for dropdown
+$subjects = [];
+$result_sub = $conn->query("SELECT subject_id, subject_name FROM subjects ORDER BY subject_name ASC");
+if ($result_sub) {
+    while ($row = $result_sub->fetch_assoc()) {
+        $subjects[] = $row;
+    }
+}
+// Fetch all lecturers for dropdown
+$lecturers = [];
+$result_lect = $conn->query("SELECT lecturer_id, name FROM lecturers ORDER BY name ASC");
+if ($result_lect) {
+    while ($row = $result_lect->fetch_assoc()) {
+        $lecturers[] = $row;
+    }
+}
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -40,127 +120,79 @@
         <div class="search-filter-container">
             <div class="search-bar">
                 <span class="material-icons search-icon">search</span>
-                <input type="text" placeholder="Search classes..." />
-            </div>
-            <div class="filter-options">
-                <select class="filter-select">
-                    <option value="">All Subjects</option>
-                    <option value="math">Mathematics</option>
-                    <option value="science">Science</option>
-                    <option value="english">English</option>
-                    <option value="history">History</option>
-                </select>
-                <select class="filter-select">
-                    <option value="">All Lecturers</option>
-                    <option value="dr-smith">Dr. Smith</option>
-                    <option value="prof-johnson">Prof. Johnson</option>
-                    <option value="ms-brown">Ms. Brown</option>
-                </select>
-                <button class="filters-btn">
-                    <span class="material-icons">filter_list</span>
-                    More Filters
-                </button>
+                <input type="text" id="searchInput" placeholder="Search classes..." onkeyup="filterClasses()" />
             </div>
         </div>
 
         <div class="classes-list-container">
-            <table class="classes-list-table">
+            <table class="classes-list-table" id="classesTable">
                 <thead>
                     <tr>
-                        <th>Class Code</th>
+                        <th>Class ID</th>
                         <th>Class Name</th>
                         <th>Subject</th>
                         <th>Lecturer</th>
-                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php
-                // Sample data - In a real application, this would come from a database
-                $classes = array(
-                    array(
-                        "id" => "MATH101",
-                        "name" => "Introduction to Calculus",
-                        "subject" => "Mathematics",
-                        "lecturer" => "Dr. Smith",
-                        "students" => 25,
-                        "schedule" => "Mon, Wed, Fri 9:00 AM",
-                        "room" => "Room 201",
-                        "status" => "active"
-                    ),
-                    array(
-                        "id" => "PHYS101",
-                        "name" => "Physics Fundamentals",
-                        "subject" => "Science",
-                        "lecturer" => "Prof. Johnson",
-                        "students" => 30,
-                        "schedule" => "Tue, Thu 10:30 AM",
-                        "room" => "Lab 105",
-                        "status" => "active"
-                    ),
-                    array(
-                        "id" => "ENG101",
-                        "name" => "English Composition",
-                        "subject" => "English",
-                        "lecturer" => "Ms. Brown",
-                        "students" => 20,
-                        "schedule" => "Mon, Wed 2:00 PM",
-                        "room" => "Room 301",
-                        "status" => "active"
-                    ),
-                    array(
-                        "id" => "HIST101",
-                        "name" => "World History",
-                        "subject" => "History",
-                        "lecturer" => "Dr. Davis",
-                        "students" => 28,
-                        "schedule" => "Tue, Thu 1:00 PM",
-                        "room" => "Room 401",
-                        "status" => "inactive"
-                    ),
-                    array(
-                        "id" => "CHEM101",
-                        "name" => "General Chemistry",
-                        "subject" => "Science",
-                        "lecturer" => "Prof. Wilson",
-                        "students" => 35,
-                        "schedule" => "Mon, Wed, Fri 11:00 AM",
-                        "room" => "Lab 201",
-                        "status" => "active"
-                    ),
-                    array(
-                        "id" => "BIO101",
-                        "name" => "Biology Basics",
-                        "subject" => "Science",
-                        "lecturer" => "Dr. Miller",
-                        "students" => 22,
-                        "schedule" => "Tue, Thu 3:30 PM",
-                        "room" => "Lab 301",
-                        "status" => "active"
-                    )
-                );
+                // Fetch all classes with subject and lecturer info (no status)
+                $classes = [];
+                $sql = "SELECT c.class_id, c.class_name, c.semester, c.year, s.subject_name, l.name AS lecturer_name FROM classes c LEFT JOIN subjects s ON c.subject_id = s.subject_id LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id ORDER BY c.class_id ASC";
+                $result = $conn->query($sql);
+                if ($result) {
+                    while ($row = $result->fetch_assoc()) {
+                        $classes[] = $row;
+                    }
+                }
 
-                foreach ($classes as $class) {
-                    $statusClass = $class['status'] === 'active' ? 'active' : 'inactive';
-                    echo "<tr>";
-                    echo "<td>{$class['id']}</td>";
-                    echo "<td>{$class['name']}</td>";
-                    echo "<td>{$class['subject']}</td>";
-                    echo "<td>{$class['lecturer']}</td>";
-                    echo "<td><span class='status-badge {$statusClass}'>{$class['status']}</span></td>";
-                    echo "<td>";
-                    echo "<span class='material-icons edit-btn' onclick='editClass(\"{$class['id']}\")'>edit</span> ";
-                    echo "<span class='material-icons delete-btn' onclick='deleteClass(\"{$class['id']}\")'>delete</span> ";
-                    echo "<span class='material-icons more-btn'>more_vert</span> ";
-                    echo "<button class='manage-students-btn' onclick='openManageStudentsModal(\"{$class['id']}\")'>Manage Students</button>";
-                    echo "</td>";
-                    echo "</tr>";
+                if (!empty($classes)) {
+                    foreach ($classes as $class) {
+                        $class_json = htmlspecialchars(json_encode([
+                            'class_id' => $class['class_id'],
+                            'class_name' => $class['class_name'],
+                            'subject_name' => $class['subject_name'],
+                            'lecturer_name' => $class['lecturer_name'],
+                            'subject_id' => $class['subject_id'] ?? '',
+                            'lecturer_id' => $class['lecturer_id'] ?? ''
+                        ]), ENT_QUOTES, 'UTF-8');
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($class['class_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($class['class_name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($class['subject_name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($class['lecturer_name']) . "</td>";
+                        echo "<td>";
+                        echo "<span class='material-icons edit-btn' data-class='$class_json' onclick='openEditClassModal(this)'>edit</span> ";
+                        echo "<form method='POST' style='display:inline;' onsubmit=\"return confirm('Are you sure you want to delete this class?');\">";
+                        echo "<input type='hidden' name='delete_class' value='1'>";
+                        echo "<input type='hidden' name='delete_class_id' value='" . htmlspecialchars($class['class_id']) . "'>";
+                        echo "<button type='submit' class='material-icons delete-btn' style='background:none;border:none;color:#666;cursor:pointer;'>delete</button>";
+                        echo "</form> ";
+                        echo "<span class='material-icons more-btn'>more_vert</span> ";
+                        echo "<button class='manage-students-btn' onclick='window.location.href=\"manage_students.php?class_id=" . htmlspecialchars($class['class_id']) . "\"'>Manage Students</button>";
+                        echo "</td>";
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='5' style='text-align:center; color:#888;'>No classes found.</td></tr>";
                 }
                 ?>
                 </tbody>
             </table>
         </div>
+
+        <?php if (!empty($errors)): ?>
+            <div class="alert alert-error">
+                <?php foreach ($errors as $err) echo htmlspecialchars($err) . '<br>'; ?>
+            </div>
+        <?php elseif (isset($_GET['success'])): ?>
+            <div class="alert alert-success">Class added successfully!</div>
+        <?php elseif (isset($_GET['success']) && $_GET['success'] == 2): ?>
+            <div class="alert alert-success">Class updated successfully!</div>
+        <?php elseif (isset($_GET['success']) && $_GET['success'] == 3): ?>
+            <div class="alert alert-success">Class deleted successfully!</div>
+        <?php endif; ?>
 
         <!-- Add Class Modal -->
         <div id="addClassModal" class="modal">
@@ -169,11 +201,8 @@
                     <h2>Add New Class</h2>
                     <span class="close" onclick="closeAddClassModal()">&times;</span>
                 </div>
-                <form class="modal-form">
-                    <div class="form-group">
-                        <label for="classId">Class Code</label>
-                        <input type="text" id="classId" name="classId" required>
-                    </div>
+                <form class="modal-form" method="POST" name="addClassForm">
+                    <input type="hidden" name="add_class" value="1">
                     <div class="form-group">
                         <label for="className">Class Name</label>
                         <input type="text" id="className" name="className" required>
@@ -182,26 +211,18 @@
                         <label for="subject">Subject</label>
                         <select id="subject" name="subject" required>
                             <option value="">Select Subject</option>
-                            <option value="math">Mathematics</option>
-                            <option value="science">Science</option>
-                            <option value="english">English</option>
-                            <option value="history">History</option>
+                            <?php foreach ($subjects as $sub): ?>
+                                <option value="<?php echo $sub['subject_id']; ?>"><?php echo htmlspecialchars($sub['subject_name']); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="lecturer">Lecturer</label>
                         <select id="lecturer" name="lecturer" required>
                             <option value="">Select Lecturer</option>
-                            <option value="dr-smith">Dr. Smith</option>
-                            <option value="prof-johnson">Prof. Johnson</option>
-                            <option value="ms-brown">Ms. Brown</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="status">Status</label>
-                        <select id="status" name="status" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <?php foreach ($lecturers as $lect): ?>
+                                <option value="<?php echo $lect['lecturer_id']; ?>"><?php echo htmlspecialchars($lect['name']); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-actions">
@@ -212,28 +233,43 @@
             </div>
         </div>
 
-        <!-- Manage Students Modal -->
-        <div id="manageStudentsModal" class="modal">
+        <!-- Edit Class Modal -->
+        <div id="editClassModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>Manage Students in Class</h2>
-                    <span class="close" onclick="closeManageStudentsModal()">&times;</span>
+                    <h2>Edit Class</h2>
+                    <span class="close" onclick="closeEditClassModal()">&times;</span>
                 </div>
-                <div class="modal-body">
-                    <div class="students-list-section">
-                        <h3>Enrolled Students</h3>
-                        <ul id="enrolledStudentsList">
-                            <!-- Dynamically filled with JS -->
-                        </ul>
+                <form class="modal-form" method="POST" name="editClassForm">
+                    <input type="hidden" name="edit_class" value="1">
+                    <input type="hidden" id="edit_class_id" name="edit_class_id">
+                    <div class="form-group">
+                        <label for="edit_className">Class Name</label>
+                        <input type="text" id="edit_className" name="edit_className" required>
                     </div>
-                    <div class="add-student-section">
-                        <h3>Add Student</h3>
-                        <input type="text" id="studentSearchInput" placeholder="Search student by name or ID...">
-                        <ul id="studentSearchResults">
-                            <!-- Dynamically filled with JS -->
-                        </ul>
+                    <div class="form-group">
+                        <label for="edit_subject">Subject</label>
+                        <select id="edit_subject" name="edit_subject" required>
+                            <option value="">Select Subject</option>
+                            <?php foreach ($subjects as $sub): ?>
+                                <option value="<?php echo $sub['subject_id']; ?>"><?php echo htmlspecialchars($sub['subject_name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                </div>
+                    <div class="form-group">
+                        <label for="edit_lecturer">Lecturer</label>
+                        <select id="edit_lecturer" name="edit_lecturer" required>
+                            <option value="">Select Lecturer</option>
+                            <?php foreach ($lecturers as $lect): ?>
+                                <option value="<?php echo $lect['lecturer_id']; ?>"><?php echo htmlspecialchars($lect['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn" onclick="closeEditClassModal()">Cancel</button>
+                        <button type="submit" class="save-btn">Update Class</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -259,20 +295,61 @@
             }
         }
 
-        function openManageStudentsModal(classId) {
-            document.getElementById('manageStudentsModal').style.display = 'block';
-            // TODO: Load students for the classId via AJAX or backend call
+        function openEditClassModal(el) {
+            var classData = JSON.parse(el.getAttribute('data-class'));
+            document.getElementById('edit_class_id').value = classData.class_id;
+            document.getElementById('edit_className').value = classData.class_name;
+            document.getElementById('edit_subject').value = classData.subject_id;
+            document.getElementById('edit_lecturer').value = classData.lecturer_id;
+            document.getElementById('editClassModal').style.display = 'block';
         }
 
-        function closeManageStudentsModal() {
-            document.getElementById('manageStudentsModal').style.display = 'none';
+        function closeEditClassModal() {
+            document.getElementById('editClassModal').style.display = 'none';
+        }
+
+        function filterClasses() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('classesTable');
+            const rows = table.getElementsByTagName('tr');
+
+            // Loop through all table rows except header
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.getElementsByTagName('td');
+                let found = false;
+
+                // Loop through all cells in the row
+                for (let j = 0; j < cells.length - 1; j++) { // Exclude the Actions column
+                    const cell = cells[j];
+                    if (cell) {
+                        const text = cell.textContent || cell.innerText;
+                        if (text.toLowerCase().indexOf(filter) > -1) {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Show/hide row based on search
+                if (found) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
         }
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('addClassModal');
-            if (event.target == modal) {
-                modal.style.display = 'none';
+            const addModal = document.getElementById('addClassModal');
+            const editModal = document.getElementById('editClassModal');
+            if (event.target == addModal) {
+                addModal.style.display = 'none';
+            }
+            if (event.target == editModal) {
+                editModal.style.display = 'none';
             }
         }
     </script>

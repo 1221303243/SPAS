@@ -19,7 +19,7 @@
                 </a>
             </div>
             <div class="user-list">
-                <a href="admin.php" class="course-link">
+                <a href="users.php" class="course-link">
                     <i class="bi bi-people"></i>
                     <div class="text-wrapper">Users</div>
                 </a>

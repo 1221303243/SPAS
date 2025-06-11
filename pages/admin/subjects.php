@@ -1,3 +1,89 @@
+<?php
+require_once '../../auth/db_connection.php';
+
+// Handle Add Subject
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_subject'])) {
+    $subject_code = trim($_POST['subjectCode']);
+    $subject_name = trim($_POST['subjectName']);
+    $description = trim($_POST['description']);
+    $lecturer_id = $_POST['lecturer'];
+    $errors = [];
+    if (!$subject_code || !$subject_name || !$description || !$lecturer_id) {
+        $errors[] = 'All fields are required.';
+    }
+    if (empty($errors)) {
+        $stmt = $conn->prepare("INSERT INTO subjects (subject_code, subject_name, description, lecturer_id) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("sssi", $subject_code, $subject_name, $description, $lecturer_id);
+        if ($stmt->execute()) {
+            header('Location: subjects.php?success=1');
+            exit();
+        } else {
+            $errors[] = 'Failed to add subject: ' . $conn->error;
+        }
+        $stmt->close();
+    }
+}
+
+// Handle Edit Subject
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_subject'])) {
+    $subject_id = intval($_POST['edit_subject_id']);
+    $subject_code = trim($_POST['edit_subjectCode']);
+    $subject_name = trim($_POST['edit_subjectName']);
+    $description = trim($_POST['edit_description']);
+    $lecturer_id = $_POST['edit_lecturer'];
+    $errors = [];
+    if (!$subject_code || !$subject_name || !$description || !$lecturer_id) {
+        $errors[] = 'All fields are required.';
+    }
+    if (empty($errors)) {
+        $stmt = $conn->prepare("UPDATE subjects SET subject_code=?, subject_name=?, description=?, lecturer_id=? WHERE subject_id=?");
+        $stmt->bind_param("sssii", $subject_code, $subject_name, $description, $lecturer_id, $subject_id);
+        if ($stmt->execute()) {
+            header('Location: subjects.php?success=2');
+            exit();
+        } else {
+            $errors[] = 'Failed to update subject: ' . $conn->error;
+        }
+        $stmt->close();
+    }
+}
+
+// Handle Delete Subject
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_subject'])) {
+    $subject_id = intval($_POST['delete_subject_id']);
+    $stmt = $conn->prepare("DELETE FROM subjects WHERE subject_id = ?");
+    $stmt->bind_param("i", $subject_id);
+    if ($stmt->execute()) {
+        header('Location: subjects.php?success=3');
+        exit();
+    } else {
+        $errors[] = 'Failed to delete subject: ' . $conn->error;
+    }
+    $stmt->close();
+}
+
+// Fetch all lecturers for dropdown
+$lecturers = [];
+$result_lect = $conn->query("SELECT lecturer_id, name FROM lecturers ORDER BY name ASC");
+if ($result_lect) {
+    while ($row = $result_lect->fetch_assoc()) {
+        $lecturers[] = $row;
+    }
+}
+
+// Fetch all subjects from the database
+$subjects = [];
+$sql = "SELECT s.subject_id, s.subject_code, s.subject_name, s.description, s.lecturer_id, l.name AS lecturer_name
+        FROM subjects s
+        LEFT JOIN lecturers l ON s.lecturer_id = l.lecturer_id
+        ORDER BY s.subject_id ASC";
+$result = $conn->query($sql);
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $subjects[] = $row;
+    }
+}
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,28 +92,13 @@
     <link rel="stylesheet" href="../../css/admin_subjects.css" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            overflow-x: hidden;
-        }
-        
-        body {
-            display: flex;
-        }
-        
-        .container {
-            flex: 1;
-            margin-left: 318px; /* Match sidebar width */
-            padding: 20px;
-        }
+        html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow-x: hidden; }
+        body { display: flex; }
+        .container { flex: 1; margin-left: 318px; padding: 20px; }
     </style>
 </head>
 <body>
     <?php include 'sidebar_admin.php'; ?>
-
     <div class="container">
         <div class="header">
             <h1>Subjects</h1>
@@ -36,32 +107,19 @@
                 <span class="material-icons">add</span>
             </button>
         </div>
-
-        <div class="search-filter-container">
-            <div class="search-bar">
-                <span class="material-icons search-icon">search</span>
-                <input type="text" placeholder="Search subjects..." />
+        <?php if (!empty($errors)): ?>
+            <div class="alert alert-error">
+                <?php foreach ($errors as $err) echo htmlspecialchars($err) . '<br>'; ?>
             </div>
-            <div class="filter-options">
-                <select class="filter-select">
-                    <option value="">All Categories</option>
-                    <option value="core">Core Subjects</option>
-                    <option value="elective">Elective Subjects</option>
-                    <option value="lab">Laboratory</option>
-                </select>
-                <select class="filter-select">
-                    <option value="">All Levels</option>
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                </select>
-                <button class="filters-btn">
-                    <span class="material-icons">filter_list</span>
-                    More Filters
-                </button>
+        <?php elseif (isset($_GET['success'])): ?>
+            <div class="alert alert-success">
+                <?php
+                if ($_GET['success'] == 1) echo 'Subject added successfully!';
+                elseif ($_GET['success'] == 2) echo 'Subject updated successfully!';
+                elseif ($_GET['success'] == 3) echo 'Subject deleted successfully!';
+                ?>
             </div>
-        </div>
-
+        <?php endif; ?>
         <div class="subjects-list-container">
             <table class="subjects-list-table">
                 <thead>
@@ -70,102 +128,41 @@
                         <th>Subject Name</th>
                         <th>Description</th>
                         <th>Lecturer</th>
-                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                <?php
-                // Sample data - In a real application, this would come from a database
-                $subjects = array(
-                    array(
-                        "id" => "MATH101",
-                        "name" => "Mathematics",
-                        "code" => "MATH101",
-                        "description" => "Algebra, Geometry, Calculus fundamentals",
-                        "credits" => 3,
-                        "category" => "Core",
-                        "level" => "Beginner",
-                        "lecturer" => "Dr. Smith",
-                        "status" => "active"
-                    ),
-                    array(
-                        "id" => "PHYS101",
-                        "name" => "Physics",
-                        "code" => "PHYS101",
-                        "description" => "Physics, Chemistry, Biology basics",
-                        "credits" => 4,
-                        "category" => "Core",
-                        "level" => "Beginner",
-                        "lecturer" => "Prof. Johnson",
-                        "status" => "active"
-                    ),
-                    array(
-                        "id" => "ENG101",
-                        "name" => "English",
-                        "code" => "ENG101",
-                        "description" => "Literature, Grammar, Writing skills",
-                        "credits" => 3,
-                        "category" => "Core",
-                        "level" => "Beginner",
-                        "lecturer" => "Ms. Brown",
-                        "status" => "active"
-                    ),
-                    array(
-                        "id" => "HIST101",
-                        "name" => "History",
-                        "code" => "HIST101",
-                        "description" => "World History, Local History studies",
-                        "credits" => 3,
-                        "category" => "Elective",
-                        "level" => "Beginner",
-                        "lecturer" => "Dr. Davis",
-                        "status" => "active"
-                    ),
-                    array(
-                        "id" => "CHEM101",
-                        "name" => "Chemistry",
-                        "code" => "CHEM101",
-                        "description" => "General Chemistry with laboratory work",
-                        "credits" => 4,
-                        "category" => "Core",
-                        "level" => "Intermediate",
-                        "lecturer" => "Prof. Wilson",
-                        "status" => "active"
-                    ),
-                    array(
-                        "id" => "BIO101",
-                        "name" => "Biology",
-                        "code" => "BIO101",
-                        "description" => "Biology Basics with practical sessions",
-                        "credits" => 4,
-                        "category" => "Core",
-                        "level" => "Beginner",
-                        "lecturer" => "Dr. Miller",
-                        "status" => "inactive"
-                    )
-                );
-
-                foreach ($subjects as $subject) {
-                    echo "<tr>";
-                    echo "<td>{$subject['code']}</td>";
-                    echo "<td>{$subject['name']}</td>";
-                    echo "<td>{$subject['description']}</td>";
-                    echo "<td>{$subject['lecturer']}</td>";
-                    echo "<td><span class='status-badge {$subject['status']}'>{$subject['status']}</span></td>";
-                    echo "<td>";
-                    echo "<span class='material-icons edit-btn' onclick='editSubject(\"{$subject['id']}\")'>edit</span> ";
-                    echo "<span class='material-icons delete-btn' onclick='deleteSubject(\"{$subject['id']}\")'>delete</span> ";
-                    echo "<span class='material-icons more-btn'>more_vert</span> ";
-                    echo "<button class='view-details-btn'>View Details</button>";
-                    echo "</td>";
-                    echo "</tr>";
-                }
-                ?>
+                <?php if (!empty($subjects)): ?>
+                    <?php foreach ($subjects as $subject): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($subject['subject_code']); ?></td>
+                            <td><?php echo htmlspecialchars($subject['subject_name']); ?></td>
+                            <td><?php echo htmlspecialchars($subject['description']); ?></td>
+                            <td><?php echo htmlspecialchars($subject['lecturer_name']); ?></td>
+                            <td>
+                                <span class='material-icons edit-btn'
+                                    data-subject='<?php echo htmlspecialchars(json_encode([
+                                        'subject_id' => $subject['subject_id'],
+                                        'subject_code' => $subject['subject_code'],
+                                        'subject_name' => $subject['subject_name'],
+                                        'description' => $subject['description'],
+                                        'lecturer_id' => $subject['lecturer_id']
+                                    ]), ENT_QUOTES, 'UTF-8'); ?>'
+                                    onclick='openEditSubjectModal(this)'>edit</span>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this subject?');">
+                                    <input type="hidden" name="delete_subject" value="1">
+                                    <input type="hidden" name="delete_subject_id" value="<?php echo $subject['subject_id']; ?>">
+                                    <button type="submit" class="material-icons delete-btn" style="background:none;border:none;color:#666;cursor:pointer;">delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr><td colspan="5" style="text-align:center; color:#888;">No subjects found.</td></tr>
+                <?php endif; ?>
                 </tbody>
             </table>
         </div>
-
         <!-- Add Subject Modal -->
         <div id="addSubjectModal" class="modal">
             <div class="modal-content">
@@ -173,7 +170,8 @@
                     <h2>Add New Subject</h2>
                     <span class="close" onclick="closeAddSubjectModal()">&times;</span>
                 </div>
-                <form class="modal-form">
+                <form class="modal-form" method="POST">
+                    <input type="hidden" name="add_subject" value="1">
                     <div class="form-group">
                         <label for="subjectCode">Subject Code</label>
                         <input type="text" id="subjectCode" name="subjectCode" required>
@@ -190,16 +188,9 @@
                         <label for="lecturer">Lecturer</label>
                         <select id="lecturer" name="lecturer" required>
                             <option value="">Select Lecturer</option>
-                            <option value="dr-smith">Dr. Smith</option>
-                            <option value="prof-johnson">Prof. Johnson</option>
-                            <option value="ms-brown">Ms. Brown</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="status">Status</label>
-                        <select id="status" name="status" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <?php foreach ($lecturers as $lect): ?>
+                                <option value="<?php echo $lect['lecturer_id']; ?>"><?php echo htmlspecialchars($lect['name']); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-actions">
@@ -209,36 +200,77 @@
                 </form>
             </div>
         </div>
+        <!-- Edit Subject Modal -->
+        <div id="editSubjectModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Edit Subject</h2>
+                    <span class="close" onclick="closeEditSubjectModal()">&times;</span>
+                </div>
+                <form class="modal-form" method="POST">
+                    <input type="hidden" name="edit_subject" value="1">
+                    <input type="hidden" id="edit_subject_id" name="edit_subject_id">
+                    <div class="form-group">
+                        <label for="edit_subjectCode">Subject Code</label>
+                        <input type="text" id="edit_subjectCode" name="edit_subjectCode" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_subjectName">Subject Name</label>
+                        <input type="text" id="edit_subjectName" name="edit_subjectName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_description">Description</label>
+                        <textarea id="edit_description" name="edit_description" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_lecturer">Lecturer</label>
+                        <select id="edit_lecturer" name="edit_lecturer" required>
+                            <option value="">Select Lecturer</option>
+                            <?php foreach ($lecturers as $lect): ?>
+                                <option value="<?php echo $lect['lecturer_id']; ?>"><?php echo htmlspecialchars($lect['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn" onclick="closeEditSubjectModal()">Cancel</button>
+                        <button type="submit" class="save-btn">Update Subject</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-
+    <!-- Move all modal JS functions here, just before </body> -->
     <script>
-        function openAddSubjectModal() {
-            document.getElementById('addSubjectModal').style.display = 'block';
+    function openAddSubjectModal() {
+        document.getElementById('addSubjectModal').style.display = 'block';
+    }
+    function closeAddSubjectModal() {
+        document.getElementById('addSubjectModal').style.display = 'none';
+    }
+    function openEditSubjectModal(el) {
+        var subject = JSON.parse(el.getAttribute('data-subject'));
+        document.getElementById('edit_subject_id').value = subject.subject_id;
+        document.getElementById('edit_subjectCode').value = subject.subject_code;
+        document.getElementById('edit_subjectName').value = subject.subject_name;
+        document.getElementById('edit_description').value = subject.description;
+        document.getElementById('edit_lecturer').value = subject.lecturer_id;
+        document.getElementById('editSubjectModal').style.display = 'block';
+    }
+    function closeEditSubjectModal() {
+        document.getElementById('editSubjectModal').style.display = 'none';
+    }
+    function deleteSubject(subjectId) {
+        if (confirm('Are you sure you want to delete this subject?')) {
+            // Implementation for deleting subject
+            console.log('Delete subject:', subjectId);
         }
-
-        function closeAddSubjectModal() {
-            document.getElementById('addSubjectModal').style.display = 'none';
-        }
-
-        function editSubject(subjectId) {
-            // Implementation for editing subject
-            console.log('Edit subject:', subjectId);
-        }
-
-        function deleteSubject(subjectId) {
-            if (confirm('Are you sure you want to delete this subject?')) {
-                // Implementation for deleting subject
-                console.log('Delete subject:', subjectId);
-            }
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('addSubjectModal');
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
-        }
+    }
+    window.onclick = function(event) {
+        const addModal = document.getElementById('addSubjectModal');
+        const editModal = document.getElementById('editSubjectModal');
+        if (event.target == addModal) addModal.style.display = 'none';
+        if (event.target == editModal) editModal.style.display = 'none';
+    }
     </script>
 </body>
 </html>

@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(data => {
             data = data.trim();
             if (data === "admin") {
-                window.location.href = "../pages/admin/admin.php";
+                window.location.href = "../pages/admin/dashboard.php";
             } else if (data === "student") {
                 window.location.href = "../pages/student/student_dashboard.php";
             } 

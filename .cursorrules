@@ -116,3 +116,5 @@ SPAS/
 - Export/import features
 - Audit logging
 - Email notifications 
+
+Add Class modal in pages/admin/classes.php is now functional, posts to the server, and the status field has been removed. Subject and lecturer dropdowns are now dynamic. 

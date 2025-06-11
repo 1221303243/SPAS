@@ -1,3 +1,42 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../../auth/index.php");
+    exit();
+}
+
+if ($_SESSION['role'] !== 'admin') {
+    echo "Access denied!";
+    exit();
+}
+
+require_once '../../auth/db_connection.php';
+
+
+    // Total users
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM users");
+    $stmt->execute();
+    $totalUsers = $stmt->get_result()->fetch_assoc()['total'];
+    $stmt->close();
+
+    // Total subjects
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM subjects");
+    $stmt->execute();
+    $totalSubjects = $stmt->get_result()->fetch_assoc()['total'];
+    $stmt->close();
+
+    // Total classes
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM classes");
+    $stmt->execute();
+    $totalClasses = $stmt->get_result()->fetch_assoc()['total'];
+    $stmt->close();
+
+?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -32,7 +71,7 @@
         <div class="header">
             <h1>Admin Dashboard</h1>
             <div class="header-actions">
-                <span class="welcome-text">Welcome back, Admin!</span>
+                <span class="welcome-text">Welcome back, <?php echo htmlspecialchars($_SESSION['name'] ?? 'Admin'); ?>!</span>
                 <span class="date"><?php echo date('l, F j, Y'); ?></span>
             </div>
         </div>
@@ -45,8 +84,8 @@
                 </div>
                 <div class="stat-content">
                     <h3>Total Users</h3>
-                    <p class="stat-number"><?php echo isset($totalUsers) ? $totalUsers : '156'; ?></p>
-                    <p class="stat-change positive">+12% from last month</p>
+                    <p class="stat-number"><?php echo $totalUsers; ?></p>
+                    <!-- <p class="stat-change positive">+12% from last month</p> -->
                 </div>
             </div>
 
@@ -56,8 +95,8 @@
                 </div>
                 <div class="stat-content">
                     <h3>Total Subjects</h3>
-                    <p class="stat-number"><?php echo isset($totalSubjects) ? $totalSubjects : '24'; ?></p>
-                    <p class="stat-change positive">+3 new this month</p>
+                    <p class="stat-number"><?php echo $totalSubjects; ?></p>
+                    <!-- <p class="stat-change positive">+3 new this month</p> -->
                 </div>
             </div>
 
@@ -67,19 +106,8 @@
                 </div>
                 <div class="stat-content">
                     <h3>Total Classes</h3>
-                    <p class="stat-number"><?php echo isset($totalClasses) ? $totalClasses : '48'; ?></p>
-                    <p class="stat-change positive">+8% from last month</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon active-icon">
-                    <span class="material-icons">check_circle</span>
-                </div>
-                <div class="stat-content">
-                    <h3>Active Sessions</h3>
-                    <p class="stat-number"><?php echo isset($activeSessions) ? $activeSessions : '89'; ?></p>
-                    <p class="stat-change negative">-5% from yesterday</p>
+                    <p class="stat-number"><?php echo $totalClasses; ?></p>
+                    <!-- <p class="stat-change positive">+8% from last month</p> -->
                 </div>
             </div>
         </div>
@@ -88,7 +116,7 @@
         <div class="quick-actions">
             <h2>Quick Actions</h2>
             <div class="action-buttons">
-                <a href="admin.php" class="action-btn">
+                <a href="users.php" class="action-btn">
                     <span class="material-icons">person_add</span>
                     <span>Add New User</span>
                 </a>
