@@ -62,122 +62,108 @@
             </div>
         </div>
 
-        <div class="subjects-grid">
-            <?php
-            // Sample data - In a real application, this would come from a database
-            $subjects = array(
-                array(
-                    "id" => "MATH101",
-                    "name" => "Mathematics",
-                    "code" => "MATH101",
-                    "description" => "Algebra, Geometry, Calculus fundamentals",
-                    "credits" => 3,
-                    "category" => "Core",
-                    "level" => "Beginner",
-                    "lecturer" => "Dr. Smith",
-                    "status" => "active"
-                ),
-                array(
-                    "id" => "PHYS101",
-                    "name" => "Physics",
-                    "code" => "PHYS101",
-                    "description" => "Physics, Chemistry, Biology basics",
-                    "credits" => 4,
-                    "category" => "Core",
-                    "level" => "Beginner",
-                    "lecturer" => "Prof. Johnson",
-                    "status" => "active"
-                ),
-                array(
-                    "id" => "ENG101",
-                    "name" => "English",
-                    "code" => "ENG101",
-                    "description" => "Literature, Grammar, Writing skills",
-                    "credits" => 3,
-                    "category" => "Core",
-                    "level" => "Beginner",
-                    "lecturer" => "Ms. Brown",
-                    "status" => "active"
-                ),
-                array(
-                    "id" => "HIST101",
-                    "name" => "History",
-                    "code" => "HIST101",
-                    "description" => "World History, Local History studies",
-                    "credits" => 3,
-                    "category" => "Elective",
-                    "level" => "Beginner",
-                    "lecturer" => "Dr. Davis",
-                    "status" => "active"
-                ),
-                array(
-                    "id" => "CHEM101",
-                    "name" => "Chemistry",
-                    "code" => "CHEM101",
-                    "description" => "General Chemistry with laboratory work",
-                    "credits" => 4,
-                    "category" => "Core",
-                    "level" => "Intermediate",
-                    "lecturer" => "Prof. Wilson",
-                    "status" => "active"
-                ),
-                array(
-                    "id" => "BIO101",
-                    "name" => "Biology",
-                    "code" => "BIO101",
-                    "description" => "Biology Basics with practical sessions",
-                    "credits" => 4,
-                    "category" => "Core",
-                    "level" => "Beginner",
-                    "lecturer" => "Dr. Miller",
-                    "status" => "inactive"
-                )
-            );
+        <div class="subjects-list-container">
+            <table class="subjects-list-table">
+                <thead>
+                    <tr>
+                        <th>Subject Code</th>
+                        <th>Subject Name</th>
+                        <th>Description</th>
+                        <th>Lecturer</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                // Sample data - In a real application, this would come from a database
+                $subjects = array(
+                    array(
+                        "id" => "MATH101",
+                        "name" => "Mathematics",
+                        "code" => "MATH101",
+                        "description" => "Algebra, Geometry, Calculus fundamentals",
+                        "credits" => 3,
+                        "category" => "Core",
+                        "level" => "Beginner",
+                        "lecturer" => "Dr. Smith",
+                        "status" => "active"
+                    ),
+                    array(
+                        "id" => "PHYS101",
+                        "name" => "Physics",
+                        "code" => "PHYS101",
+                        "description" => "Physics, Chemistry, Biology basics",
+                        "credits" => 4,
+                        "category" => "Core",
+                        "level" => "Beginner",
+                        "lecturer" => "Prof. Johnson",
+                        "status" => "active"
+                    ),
+                    array(
+                        "id" => "ENG101",
+                        "name" => "English",
+                        "code" => "ENG101",
+                        "description" => "Literature, Grammar, Writing skills",
+                        "credits" => 3,
+                        "category" => "Core",
+                        "level" => "Beginner",
+                        "lecturer" => "Ms. Brown",
+                        "status" => "active"
+                    ),
+                    array(
+                        "id" => "HIST101",
+                        "name" => "History",
+                        "code" => "HIST101",
+                        "description" => "World History, Local History studies",
+                        "credits" => 3,
+                        "category" => "Elective",
+                        "level" => "Beginner",
+                        "lecturer" => "Dr. Davis",
+                        "status" => "active"
+                    ),
+                    array(
+                        "id" => "CHEM101",
+                        "name" => "Chemistry",
+                        "code" => "CHEM101",
+                        "description" => "General Chemistry with laboratory work",
+                        "credits" => 4,
+                        "category" => "Core",
+                        "level" => "Intermediate",
+                        "lecturer" => "Prof. Wilson",
+                        "status" => "active"
+                    ),
+                    array(
+                        "id" => "BIO101",
+                        "name" => "Biology",
+                        "code" => "BIO101",
+                        "description" => "Biology Basics with practical sessions",
+                        "credits" => 4,
+                        "category" => "Core",
+                        "level" => "Beginner",
+                        "lecturer" => "Dr. Miller",
+                        "status" => "inactive"
+                    )
+                );
 
-            foreach ($subjects as $subject) {
-                $statusClass = $subject['status'] === 'active' ? 'active' : 'inactive';
-                echo "<div class='subject-card {$statusClass}'>";
-                echo "<div class='subject-header'>";
-                echo "<div class='subject-info'>";
-                echo "<h3 class='subject-name'>{$subject['name']}</h3>";
-                echo "<p class='subject-code'>{$subject['code']}</p>";
-                echo "</div>";
-                echo "<div class='subject-actions'>";
-                echo "<span class='material-icons edit-btn' onclick='editSubject(\"{$subject['id']}\")'>edit</span>";
-                echo "<span class='material-icons delete-btn' onclick='deleteSubject(\"{$subject['id']}\")'>delete</span>";
-                echo "<span class='material-icons more-btn'>more_vert</span>";
-                echo "</div>";
-                echo "</div>";
-                
-                echo "<div class='subject-details'>";
-                echo "<p class='subject-description'>{$subject['description']}</p>";
-                echo "<div class='subject-meta'>";
-                echo "<div class='meta-item'>";
-                echo "<span class='material-icons'>school</span>";
-                echo "<span>{$subject['credits']} Credits</span>";
-                echo "</div>";
-                echo "<div class='meta-item'>";
-                echo "<span class='material-icons'>category</span>";
-                echo "<span>{$subject['category']}</span>";
-                echo "</div>";
-                echo "<div class='meta-item'>";
-                echo "<span class='material-icons'>trending_up</span>";
-                echo "<span>{$subject['level']}</span>";
-                echo "</div>";
-                echo "<div class='meta-item'>";
-                echo "<span class='material-icons'>person</span>";
-                echo "<span>{$subject['lecturer']}</span>";
-                echo "</div>";
-                echo "</div>";
-                echo "</div>";
-                
-                echo "<div class='subject-footer'>";
-                echo "<span class='status-badge {$statusClass}'>{$subject['status']}</span>";
-                echo "<button class='view-details-btn'>View Details</button>";
-                echo "</div>";
-                echo "</div>";
-            }
-            ?>
+                foreach ($subjects as $subject) {
+                    echo "<tr>";
+                    echo "<td>{$subject['code']}</td>";
+                    echo "<td>{$subject['name']}</td>";
+                    echo "<td>{$subject['description']}</td>";
+                    echo "<td>{$subject['lecturer']}</td>";
+                    echo "<td><span class='status-badge {$subject['status']}'>{$subject['status']}</span></td>";
+                    echo "<td>";
+                    echo "<span class='material-icons edit-btn' onclick='editSubject(\"{$subject['id']}\")'>edit</span> ";
+                    echo "<span class='material-icons delete-btn' onclick='deleteSubject(\"{$subject['id']}\")'>delete</span> ";
+                    echo "<span class='material-icons more-btn'>more_vert</span> ";
+                    echo "<button class='view-details-btn'>View Details</button>";
+                    echo "</td>";
+                    echo "</tr>";
+                }
+                ?>
+                </tbody>
+            </table>
         </div>
 
         <!-- Add Subject Modal -->
@@ -200,40 +186,21 @@
                         <label for="description">Description</label>
                         <textarea id="description" name="description" rows="3" required></textarea>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="credits">Credits</label>
-                            <input type="number" id="credits" name="credits" min="1" max="6" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="category">Category</label>
-                            <select id="category" name="category" required>
-                                <option value="">Select Category</option>
-                                <option value="core">Core</option>
-                                <option value="elective">Elective</option>
-                                <option value="lab">Laboratory</option>
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label for="lecturer">Lecturer</label>
+                        <select id="lecturer" name="lecturer" required>
+                            <option value="">Select Lecturer</option>
+                            <option value="dr-smith">Dr. Smith</option>
+                            <option value="prof-johnson">Prof. Johnson</option>
+                            <option value="ms-brown">Ms. Brown</option>
+                        </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="level">Level</label>
-                            <select id="level" name="level" required>
-                                <option value="">Select Level</option>
-                                <option value="beginner">Beginner</option>
-                                <option value="intermediate">Intermediate</option>
-                                <option value="advanced">Advanced</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="lecturer">Lecturer</label>
-                            <select id="lecturer" name="lecturer" required>
-                                <option value="">Select Lecturer</option>
-                                <option value="dr-smith">Dr. Smith</option>
-                                <option value="prof-johnson">Prof. Johnson</option>
-                                <option value="ms-brown">Ms. Brown</option>
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="cancel-btn" onclick="closeAddSubjectModal()">Cancel</button>

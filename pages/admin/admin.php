@@ -62,114 +62,102 @@
             </div>
         </div>
 
-        <div class="users-grid">
-            <?php
-            // Sample data - In a real application, this would come from a database
-            $users = array(
-                array(
-                    "id" => "USR001",
-                    "name" => "John Legend",
-                    "email" => "john.legend@gmail.com",
-                    "phone" => "+1234567890",
-                    "role" => "Admin",
-                    "department" => "IT Department",
-                    "status" => "active",
-                    "avatar" => "JL"
-                ),
-                array(
-                    "id" => "USR002",
-                    "name" => "Sarah Johnson",
-                    "email" => "sarah.johnson@university.edu",
-                    "phone" => "+1234567891",
-                    "role" => "Lecturer",
-                    "department" => "Mathematics",
-                    "status" => "active",
-                    "avatar" => "SJ"
-                ),
-                array(
-                    "id" => "USR003",
-                    "name" => "Michael Brown",
-                    "email" => "michael.brown@university.edu",
-                    "phone" => "+1234567892",
-                    "role" => "Student",
-                    "department" => "Computer Science",
-                    "status" => "active",
-                    "avatar" => "MB"
-                ),
-                array(
-                    "id" => "USR004",
-                    "name" => "Emily Davis",
-                    "email" => "emily.davis@university.edu",
-                    "phone" => "+1234567893",
-                    "role" => "Lecturer",
-                    "department" => "Physics",
-                    "status" => "inactive",
-                    "avatar" => "ED"
-                ),
-                array(
-                    "id" => "USR005",
-                    "name" => "David Wilson",
-                    "email" => "david.wilson@university.edu",
-                    "phone" => "+1234567894",
-                    "role" => "Student",
-                    "department" => "Engineering",
-                    "status" => "active",
-                    "avatar" => "DW"
-                ),
-                array(
-                    "id" => "USR006",
-                    "name" => "Lisa Anderson",
-                    "email" => "lisa.anderson@university.edu",
-                    "phone" => "+1234567895",
-                    "role" => "Lecturer",
-                    "department" => "English",
-                    "status" => "active",
-                    "avatar" => "LA"
-                )
-            );
+        <div class="users-list-container">
+            <table class="users-list-table">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                // Sample data - In a real application, this would come from a database
+                $users = array(
+                    array(
+                        "id" => "USR001",
+                        "name" => "John Legend",
+                        "email" => "john.legend@gmail.com",
+                        "phone" => "+1234567890",
+                        "role" => "Admin",
+                        "department" => "IT Department",
+                        "status" => "active",
+                        "avatar" => "JL"
+                    ),
+                    array(
+                        "id" => "USR002",
+                        "name" => "Sarah Johnson",
+                        "email" => "sarah.johnson@university.edu",
+                        "phone" => "+1234567891",
+                        "role" => "Lecturer",
+                        "department" => "Mathematics",
+                        "status" => "active",
+                        "avatar" => "SJ"
+                    ),
+                    array(
+                        "id" => "USR003",
+                        "name" => "Michael Brown",
+                        "email" => "michael.brown@university.edu",
+                        "phone" => "+1234567892",
+                        "role" => "Student",
+                        "department" => "Computer Science",
+                        "status" => "active",
+                        "avatar" => "MB"
+                    ),
+                    array(
+                        "id" => "USR004",
+                        "name" => "Emily Davis",
+                        "email" => "emily.davis@university.edu",
+                        "phone" => "+1234567893",
+                        "role" => "Lecturer",
+                        "department" => "Physics",
+                        "status" => "inactive",
+                        "avatar" => "ED"
+                    ),
+                    array(
+                        "id" => "USR005",
+                        "name" => "David Wilson",
+                        "email" => "david.wilson@university.edu",
+                        "phone" => "+1234567894",
+                        "role" => "Student",
+                        "department" => "Engineering",
+                        "status" => "active",
+                        "avatar" => "DW"
+                    ),
+                    array(
+                        "id" => "USR006",
+                        "name" => "Lisa Anderson",
+                        "email" => "lisa.anderson@university.edu",
+                        "phone" => "+1234567895",
+                        "role" => "Lecturer",
+                        "department" => "English",
+                        "status" => "active",
+                        "avatar" => "LA"
+                    )
+                );
 
-            foreach ($users as $user) {
-                $statusClass = $user['status'] === 'active' ? 'active' : 'inactive';
-                $roleClass = strtolower($user['role']);
-                echo "<div class='user-card {$statusClass}'>";
-                echo "<div class='user-header'>";
-                echo "<div class='user-avatar'>";
-                echo "<span>{$user['avatar']}</span>";
-                echo "</div>";
-                echo "<div class='user-info'>";
-                echo "<h3 class='user-name'>{$user['name']}</h3>";
-                echo "<p class='user-id'>{$user['id']}</p>";
-                echo "</div>";
-                echo "<div class='user-actions'>";
-                echo "<span class='material-icons edit-btn' onclick='editUser(\"{$user['id']}\")'>edit</span>";
-                echo "<span class='material-icons delete-btn' onclick='deleteUser(\"{$user['id']}\")'>delete</span>";
-                echo "<span class='material-icons more-btn'>more_vert</span>";
-                echo "</div>";
-                echo "</div>";
-                
-                echo "<div class='user-details'>";
-                echo "<div class='detail-item'>";
-                echo "<span class='material-icons'>email</span>";
-                echo "<span>{$user['email']}</span>";
-                echo "</div>";
-                echo "<div class='detail-item'>";
-                echo "<span class='material-icons'>phone</span>";
-                echo "<span>{$user['phone']}</span>";
-                echo "</div>";
-                echo "<div class='detail-item'>";
-                echo "<span class='material-icons'>business</span>";
-                echo "<span>{$user['department']}</span>";
-                echo "</div>";
-                echo "</div>";
-                
-                echo "<div class='user-footer'>";
-                echo "<span class='role-badge {$roleClass}'>{$user['role']}</span>";
-                echo "<span class='status-badge {$statusClass}'>{$user['status']}</span>";
-                echo "<button class='view-details-btn'>View Details</button>";
-                echo "</div>";
-                echo "</div>";
-            }
-            ?>
+                foreach ($users as $user) {
+                    echo "<tr>";
+                    echo "<td>{$user['id']}</td>";
+                    echo "<td>{$user['name']}</td>";
+                    echo "<td>{$user['email']}</td>";
+                    echo "<td>{$user['role']}</td>";
+                    echo "<td><span class='status-badge {$user['status']}'>{$user['status']}</span></td>";
+                    echo "<td>";
+                    echo "<span class='material-icons edit-btn' onclick='editUser(\"{$user['id']}\")'>edit</span> ";
+                    echo "<span class='material-icons delete-btn' onclick='deleteUser(\"{$user['id']}\")'>delete</span> ";
+                    echo "<span class='material-icons more-btn'>more_vert</span> ";
+                    echo "<button class='view-details-btn'>View Details</button>";
+                    echo "</td>";
+                    echo "</tr>";
+                }
+                ?>
+                </tbody>
+            </table>
         </div>
 
         <!-- Add User Modal -->
@@ -180,55 +168,34 @@
                     <span class="close" onclick="closeAddUserModal()">&times;</span>
                 </div>
                 <form class="modal-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="firstName">First Name</label>
-                            <input type="text" id="firstName" name="firstName" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="lastName">Last Name</label>
-                            <input type="text" id="lastName" name="lastName" required>
-                        </div>
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" name="name" required>
                     </div>
                     <div class="form-group">
                         <label for="email">Email</label>
                         <input type="email" id="email" name="email" required>
                     </div>
                     <div class="form-group">
-                        <label for="phone">Phone</label>
-                        <input type="tel" id="phone" name="phone" required>
+                        <label for="role">Role</label>
+                        <select id="role" name="role" required>
+                            <option value="">Select Role</option>
+                            <option value="admin">Admin</option>
+                            <option value="lecturer">Lecturer</option>
+                            <option value="student">Student</option>
+                        </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="role">Role</label>
-                            <select id="role" name="role" required>
-                                <option value="">Select Role</option>
-                                <option value="admin">Admin</option>
-                                <option value="lecturer">Lecturer</option>
-                                <option value="student">Student</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="department">Department</label>
-                            <select id="department" name="department" required>
-                                <option value="">Select Department</option>
-                                <option value="it">IT Department</option>
-                                <option value="math">Mathematics</option>
-                                <option value="physics">Physics</option>
-                                <option value="english">English</option>
-                                <option value="engineering">Engineering</option>
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="pending">Pending</option>
+                        </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" id="password" name="password" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword">Confirm Password</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" required>
-                        </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="cancel-btn" onclick="closeAddUserModal()">Cancel</button>

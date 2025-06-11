@@ -63,117 +63,103 @@
             </div>
         </div>
 
-        <div class="classes-grid">
-            <?php
-            // Sample data - In a real application, this would come from a database
-            $classes = array(
-                array(
-                    "id" => "MATH101",
-                    "name" => "Introduction to Calculus",
-                    "subject" => "Mathematics",
-                    "lecturer" => "Dr. Smith",
-                    "students" => 25,
-                    "schedule" => "Mon, Wed, Fri 9:00 AM",
-                    "room" => "Room 201",
-                    "status" => "active"
-                ),
-                array(
-                    "id" => "PHYS101",
-                    "name" => "Physics Fundamentals",
-                    "subject" => "Science",
-                    "lecturer" => "Prof. Johnson",
-                    "students" => 30,
-                    "schedule" => "Tue, Thu 10:30 AM",
-                    "room" => "Lab 105",
-                    "status" => "active"
-                ),
-                array(
-                    "id" => "ENG101",
-                    "name" => "English Composition",
-                    "subject" => "English",
-                    "lecturer" => "Ms. Brown",
-                    "students" => 20,
-                    "schedule" => "Mon, Wed 2:00 PM",
-                    "room" => "Room 301",
-                    "status" => "active"
-                ),
-                array(
-                    "id" => "HIST101",
-                    "name" => "World History",
-                    "subject" => "History",
-                    "lecturer" => "Dr. Davis",
-                    "students" => 28,
-                    "schedule" => "Tue, Thu 1:00 PM",
-                    "room" => "Room 401",
-                    "status" => "inactive"
-                ),
-                array(
-                    "id" => "CHEM101",
-                    "name" => "General Chemistry",
-                    "subject" => "Science",
-                    "lecturer" => "Prof. Wilson",
-                    "students" => 35,
-                    "schedule" => "Mon, Wed, Fri 11:00 AM",
-                    "room" => "Lab 201",
-                    "status" => "active"
-                ),
-                array(
-                    "id" => "BIO101",
-                    "name" => "Biology Basics",
-                    "subject" => "Science",
-                    "lecturer" => "Dr. Miller",
-                    "students" => 22,
-                    "schedule" => "Tue, Thu 3:30 PM",
-                    "room" => "Lab 301",
-                    "status" => "active"
-                )
-            );
+        <div class="classes-list-container">
+            <table class="classes-list-table">
+                <thead>
+                    <tr>
+                        <th>Class Code</th>
+                        <th>Class Name</th>
+                        <th>Subject</th>
+                        <th>Lecturer</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                // Sample data - In a real application, this would come from a database
+                $classes = array(
+                    array(
+                        "id" => "MATH101",
+                        "name" => "Introduction to Calculus",
+                        "subject" => "Mathematics",
+                        "lecturer" => "Dr. Smith",
+                        "students" => 25,
+                        "schedule" => "Mon, Wed, Fri 9:00 AM",
+                        "room" => "Room 201",
+                        "status" => "active"
+                    ),
+                    array(
+                        "id" => "PHYS101",
+                        "name" => "Physics Fundamentals",
+                        "subject" => "Science",
+                        "lecturer" => "Prof. Johnson",
+                        "students" => 30,
+                        "schedule" => "Tue, Thu 10:30 AM",
+                        "room" => "Lab 105",
+                        "status" => "active"
+                    ),
+                    array(
+                        "id" => "ENG101",
+                        "name" => "English Composition",
+                        "subject" => "English",
+                        "lecturer" => "Ms. Brown",
+                        "students" => 20,
+                        "schedule" => "Mon, Wed 2:00 PM",
+                        "room" => "Room 301",
+                        "status" => "active"
+                    ),
+                    array(
+                        "id" => "HIST101",
+                        "name" => "World History",
+                        "subject" => "History",
+                        "lecturer" => "Dr. Davis",
+                        "students" => 28,
+                        "schedule" => "Tue, Thu 1:00 PM",
+                        "room" => "Room 401",
+                        "status" => "inactive"
+                    ),
+                    array(
+                        "id" => "CHEM101",
+                        "name" => "General Chemistry",
+                        "subject" => "Science",
+                        "lecturer" => "Prof. Wilson",
+                        "students" => 35,
+                        "schedule" => "Mon, Wed, Fri 11:00 AM",
+                        "room" => "Lab 201",
+                        "status" => "active"
+                    ),
+                    array(
+                        "id" => "BIO101",
+                        "name" => "Biology Basics",
+                        "subject" => "Science",
+                        "lecturer" => "Dr. Miller",
+                        "students" => 22,
+                        "schedule" => "Tue, Thu 3:30 PM",
+                        "room" => "Lab 301",
+                        "status" => "active"
+                    )
+                );
 
-            foreach ($classes as $class) {
-                $statusClass = $class['status'] === 'active' ? 'active' : 'inactive';
-                echo "<div class='class-card {$statusClass}'>";
-                echo "<div class='class-header'>";
-                echo "<div class='class-info'>";
-                echo "<h3 class='class-name'>{$class['name']}</h3>";
-                echo "<p class='class-id'>{$class['id']}</p>";
-                echo "</div>";
-                echo "<div class='class-actions'>";
-                echo "<span class='material-icons edit-btn' onclick='editClass(\"{$class['id']}\")'>edit</span>";
-                echo "<span class='material-icons delete-btn' onclick='deleteClass(\"{$class['id']}\")'>delete</span>";
-                echo "<span class='material-icons more-btn'>more_vert</span>";
-                echo "</div>";
-                echo "</div>";
-                
-                echo "<div class='class-details'>";
-                echo "<div class='detail-item'>";
-                echo "<span class='material-icons'>book</span>";
-                echo "<span>{$class['subject']}</span>";
-                echo "</div>";
-                echo "<div class='detail-item'>";
-                echo "<span class='material-icons'>person</span>";
-                echo "<span>{$class['lecturer']}</span>";
-                echo "</div>";
-                echo "<div class='detail-item'>";
-                echo "<span class='material-icons'>group</span>";
-                echo "<span>{$class['students']} students</span>";
-                echo "</div>";
-                echo "<div class='detail-item'>";
-                echo "<span class='material-icons'>schedule</span>";
-                echo "<span>{$class['schedule']}</span>";
-                echo "</div>";
-                echo "<div class='detail-item'>";
-                echo "<span class='material-icons'>room</span>";
-                echo "<span>{$class['room']}</span>";
-                echo "</div>";
-                echo "</div>";
-                
-                echo "<div class='class-footer'>";
-                echo "<span class='status-badge {$statusClass}'>{$class['status']}</span>";
-                echo "<button class='view-details-btn'>View Details</button>";
-                echo "</div>";
-                echo "</div>";
-            }
-            ?>
+                foreach ($classes as $class) {
+                    $statusClass = $class['status'] === 'active' ? 'active' : 'inactive';
+                    echo "<tr>";
+                    echo "<td>{$class['id']}</td>";
+                    echo "<td>{$class['name']}</td>";
+                    echo "<td>{$class['subject']}</td>";
+                    echo "<td>{$class['lecturer']}</td>";
+                    echo "<td><span class='status-badge {$statusClass}'>{$class['status']}</span></td>";
+                    echo "<td>";
+                    echo "<span class='material-icons edit-btn' onclick='editClass(\"{$class['id']}\")'>edit</span> ";
+                    echo "<span class='material-icons delete-btn' onclick='deleteClass(\"{$class['id']}\")'>delete</span> ";
+                    echo "<span class='material-icons more-btn'>more_vert</span> ";
+                    echo "<button class='manage-students-btn' onclick='openManageStudentsModal(\"{$class['id']}\")'>Manage Students</button>";
+                    echo "</td>";
+                    echo "</tr>";
+                }
+                ?>
+                </tbody>
+            </table>
         </div>
 
         <!-- Add Class Modal -->
@@ -185,7 +171,7 @@
                 </div>
                 <form class="modal-form">
                     <div class="form-group">
-                        <label for="classId">Class ID</label>
+                        <label for="classId">Class Code</label>
                         <input type="text" id="classId" name="classId" required>
                     </div>
                     <div class="form-group">
@@ -212,22 +198,42 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="schedule">Schedule</label>
-                        <input type="text" id="schedule" name="schedule" placeholder="e.g., Mon, Wed, Fri 9:00 AM" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="room">Room</label>
-                        <input type="text" id="room" name="room" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="maxStudents">Max Students</label>
-                        <input type="number" id="maxStudents" name="maxStudents" min="1" max="50" required>
+                        <label for="status">Status</label>
+                        <select id="status" name="status" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="cancel-btn" onclick="closeAddClassModal()">Cancel</button>
                         <button type="submit" class="save-btn">Save Class</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Manage Students Modal -->
+        <div id="manageStudentsModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Manage Students in Class</h2>
+                    <span class="close" onclick="closeManageStudentsModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="students-list-section">
+                        <h3>Enrolled Students</h3>
+                        <ul id="enrolledStudentsList">
+                            <!-- Dynamically filled with JS -->
+                        </ul>
+                    </div>
+                    <div class="add-student-section">
+                        <h3>Add Student</h3>
+                        <input type="text" id="studentSearchInput" placeholder="Search student by name or ID...">
+                        <ul id="studentSearchResults">
+                            <!-- Dynamically filled with JS -->
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -251,6 +257,15 @@
                 // Implementation for deleting class
                 console.log('Delete class:', classId);
             }
+        }
+
+        function openManageStudentsModal(classId) {
+            document.getElementById('manageStudentsModal').style.display = 'block';
+            // TODO: Load students for the classId via AJAX or backend call
+        }
+
+        function closeManageStudentsModal() {
+            document.getElementById('manageStudentsModal').style.display = 'none';
         }
 
         // Close modal when clicking outside

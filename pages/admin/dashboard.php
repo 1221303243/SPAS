@@ -107,52 +107,6 @@
             </div>
         </div>
 
-        <!-- Recent Activity -->
-        <div class="recent-activity">
-            <h2>Recent Activity</h2>
-            <div class="activity-list">
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <span class="material-icons">person_add</span>
-                    </div>
-                    <div class="activity-content">
-                        <p class="activity-text">New user <strong>John Doe</strong> was added</p>
-                        <p class="activity-time">2 hours ago</p>
-                    </div>
-                </div>
-
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <span class="material-icons">edit</span>
-                    </div>
-                    <div class="activity-content">
-                        <p class="activity-text">Subject <strong>Mathematics</strong> was updated</p>
-                        <p class="activity-time">4 hours ago</p>
-                    </div>
-                </div>
-
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <span class="material-icons">delete</span>
-                    </div>
-                    <div class="activity-content">
-                        <p class="activity-text">Class <strong>Physics 101</strong> was deleted</p>
-                        <p class="activity-time">1 day ago</p>
-                    </div>
-                </div>
-
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <span class="material-icons">group_add</span>
-                    </div>
-                    <div class="activity-content">
-                        <p class="activity-text">New class <strong>Chemistry Lab</strong> was created</p>
-                        <p class="activity-time">2 days ago</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- System Status -->
         <div class="system-status">
             <h2>System Status</h2>
