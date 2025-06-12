@@ -36,6 +36,12 @@
                     <div class="text-wrapper">Classes</div>
                 </a>
             </div>
+            <div class="user-list">
+                <a href="academic_config.php" class="course-link">
+                    <i class="bi bi-gear"></i>
+                    <div class="text-wrapper">Academic Config</div>
+                </a>
+            </div>
         </div>
         <div class="user">
             <div class="frame">

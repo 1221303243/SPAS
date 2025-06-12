@@ -1,7 +1,7 @@
 # SPAS Admin Dashboard - Cursor Rules
 
 ## Project Overview
-SPAS (Student Performance Assessment System) is a PHP-based web application with an admin dashboard for managing users, subjects, and classes.
+SPAS (Student Performance Assessment System) is a PHP-based web application with an admin dashboard for managing users, subjects, classes, and academic configuration.
 
 ## Project Structure
 ```
@@ -9,18 +9,21 @@ SPAS/
 ├── pages/
 │   └── admin/
 │       ├── dashboard.php          # Main admin dashboard
-│       ├── admin.php              # User management
+│       ├── users.php              # User management
 │       ├── subjects.php           # Subject management
 │       ├── classes.php            # Class management
+│       ├── academic_config.php    # Academic configuration management
 │       └── sidebar_admin.php      # Admin sidebar navigation
 ├── css/
 │   ├── admin_dashboard.css        # Dashboard styling
 │   ├── admin_users.css            # User management styling
 │   ├── admin_subjects.css         # Subject management styling
 │   ├── admin_classes.css          # Class management styling
+│   ├── admin_academic_config.css  # Academic configuration styling
 │   └── admin.css                  # Legacy admin styling
-├── database/
 ├── config/
+│   └── academic_config.php        # Academic configuration constants
+├── database/
 └── auth/
 ```
 
@@ -33,6 +36,7 @@ SPAS/
 - Include sidebar_admin.php in all admin pages
 - Use consistent naming: lowercase with underscores
 - Add proper comments for sample data sections
+- Implement proper form validation and error handling
 
 ### CSS Guidelines
 - Use modern CSS with flexbox and grid
@@ -59,6 +63,7 @@ SPAS/
 - Status badges with color coding
 - Action buttons with icons
 - Responsive grid layouts
+- Configuration forms with validation
 
 ### File Organization
 - Separate CSS files for each admin page
@@ -89,11 +94,25 @@ SPAS/
 - User management (add, edit, delete)
 - Subject management (add, edit, delete)
 - Class management (add, edit, delete)
+- Academic configuration management
+  - Semester start date setting
+  - Semester duration configuration
+  - Passing percentage configuration
+  - Assessment types display
 - Search and filter functionality
 - Status indicators
 - Modal forms for data entry
 - Responsive design
 - System status monitoring
+
+## Academic Configuration System
+- Dynamic configuration file management
+- Form validation for all inputs
+- Real-time configuration updates
+- Current configuration display
+- Semester end date calculation
+- Assessment types overview
+- Admin-only access control
 
 ## Database Integration
 - Sample data arrays for demonstration
@@ -102,11 +121,12 @@ SPAS/
 - Foreign key relationships
 
 ## Security Considerations
-- Input validation (to be implemented)
+- Input validation and sanitization
 - SQL injection prevention
 - XSS protection
 - CSRF tokens (to be implemented)
 - Role-based access control
+- File write permissions for configuration
 
 ## Future Enhancements
 - Real database integration
@@ -115,6 +135,12 @@ SPAS/
 - Advanced filtering
 - Export/import features
 - Audit logging
-- Email notifications 
+- Email notifications
+- Academic year management
+- Multiple semester support
 
-Add Class modal in pages/admin/classes.php is now functional, posts to the server, and the status field has been removed. Subject and lecturer dropdowns are now dynamic. 
+## Recent Updates
+- Add Class modal in pages/admin/classes.php is now functional, posts to the server, and the status field has been removed. Subject and lecturer dropdowns are now dynamic.
+- Academic configuration system implemented with semester start date management, duration settings, and passing percentage configuration.
+- New admin page: academic_config.php with modern UI and form validation.
+- Updated sidebar navigation to include Academic Config link. 

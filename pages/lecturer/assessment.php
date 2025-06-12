@@ -28,7 +28,7 @@ $stmt->close();
 // Fetch assessment configurations for this lecturer's subjects
 $assessments = array();
 if ($lecturer_id) {
-    $sql = "SELECT 
+    $sql = "SELECT DISTINCT
                 a.assessment_id,
                 a.subject_id,
                 a.assessment_type,
