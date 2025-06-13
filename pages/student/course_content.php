@@ -130,6 +130,7 @@ if ($subject_id) {
                     data.addColumn('number', 'Your Mark');
                     data.addColumn('number', 'Passing Grade');
 
+                    data.addRow([semesterStartDate, 0, 50]); // Start from 0
                     grades_by_date.forEach(function(grade) {
                         if (grade.date && grade.percentage != null) {
                             // Parse date string (YYYY-MM-DD) to JS Date object

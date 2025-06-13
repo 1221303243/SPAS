@@ -60,7 +60,7 @@ if ($lecturer_id) {
     <!-- Main Content -->
     <div class="container">
         <div class="header">
-            <h1>My Subjects</h1>
+            <h1>My Class List</h1>
         </div>
 
         <!-- List of Subjects -->

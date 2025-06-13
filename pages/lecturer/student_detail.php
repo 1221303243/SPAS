@@ -106,10 +106,14 @@ $coursework_percentage = $coursework_total; // sum of weighted marks for coursew
 $final_exam_percentage = $final_exam_total; // sum of weighted marks for final exam
 $overall_percentage = $coursework_percentage + $final_exam_percentage; // sum, not average
 
+// Calculate dynamic pass marks
+$coursework_pass_mark = $coursework_weight / 2;
+$final_exam_pass_mark = $final_exam_weight / 2;
+
 // Determine pass/fail status
-$coursework_status = $coursework_percentage >= 50 ? 'PASS' : 'FAIL';
-$final_exam_status = $final_exam_percentage >= 50 ? 'PASS' : 'FAIL';
-$overall_status = ($coursework_percentage >= 50 && $final_exam_percentage >= 50) ? 'PASS' : 'FAIL';
+$coursework_status = $coursework_percentage >= $coursework_pass_mark ? 'PASS' : 'FAIL';
+$final_exam_status = $final_exam_percentage >= $final_exam_pass_mark ? 'PASS' : 'FAIL';
+$overall_status = ($coursework_status === 'PASS' && $final_exam_status === 'PASS') ? 'PASS' : 'FAIL';
 
 // Get the final grade from the grades table
 $grade_sql = "
@@ -254,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <span class="badge status-badge <?= $coursework_status === 'PASS' ? 'status-pass' : 'status-fail' ?>">
                             <?= $coursework_status ?>
                         </span>
-                        <p class="text-muted mt-2 mb-0">Weight: <?= $coursework_weight ?>%</p>
+                        <p class="text-muted mt-2 mb-0">Weight: <?= $coursework_weight ?>% (Pass mark: <?= number_format($coursework_pass_mark, 1) ?>%)</p>
                     </div>
                 </div>
             </div>
@@ -266,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <span class="badge status-badge <?= $final_exam_status === 'PASS' ? 'status-pass' : 'status-fail' ?>">
                             <?= $final_exam_status ?>
                         </span>
-                        <p class="text-muted mt-2 mb-0">Weight: <?= $final_exam_weight ?>%</p>
+                        <p class="text-muted mt-2 mb-0">Weight: <?= $final_exam_weight ?>% (Pass mark: <?= number_format($final_exam_pass_mark, 1) ?>%)</p>
                     </div>
                 </div>
             </div>

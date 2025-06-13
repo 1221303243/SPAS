@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $weightage = intval($_POST['weightage']);
     $due_date = $_POST['due_date'];
     $old_assessment_type = isset($_POST['old_assessment_type']) ? trim($_POST['old_assessment_type']) : $assessment_type;
+    $event_id = isset($_POST['event_id']) ? intval($_POST['event_id']) : null;
 
     if ($weightage < 0 || $weightage > 100) {
         echo json_encode(['success' => false, 'message' => 'Weightage must be between 0 and 100.']);
@@ -43,23 +44,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $stmt->close();
 
-        // Only delete the old event for this assessment (not all for the subject)
-        $old_event_text = "Assessment Due: $old_assessment_type (" . 
-            ($assessment['category'] === 'coursework' ? 'Coursework' : 'Final Exam') . 
-            ") for $subject_name";
-        $del_stmt = $conn->prepare('DELETE FROM calendar_events WHERE event_text = ?');
-        $del_stmt->bind_param('s', $old_event_text);
-        $del_stmt->execute();
-        $del_stmt->close();
-
-        // Insert new event
-        $event_text = "Assessment Due: $assessment_type (" . 
-            ($assessment['category'] === 'coursework' ? 'Coursework' : 'Final Exam') . 
-            ") for $subject_name";
-        $ins_stmt = $conn->prepare('INSERT INTO calendar_events (event_date, event_text) VALUES (?, ?) ON DUPLICATE KEY UPDATE event_text = VALUES(event_text)');
-        $ins_stmt->bind_param('ss', $due_date, $event_text);
-        $ins_stmt->execute();
-        $ins_stmt->close();
+        // Update calendar_events by event_id if provided
+        if ($event_id) {
+            $upd_stmt = $conn->prepare('UPDATE calendar_events SET event_date = ? WHERE event_id = ?');
+            $upd_stmt->bind_param('si', $due_date, $event_id);
+            $upd_stmt->execute();
+            $upd_stmt->close();
+        } else {
+            // Insert new event if not found
+            $event_text = "Assessment Due: $assessment_type for $subject_name";
+            $ins_stmt = $conn->prepare('INSERT INTO calendar_events (event_date, event_text) VALUES (?, ?)');
+            $ins_stmt->bind_param('ss', $due_date, $event_text);
+            $ins_stmt->execute();
+            $ins_stmt->close();
+        }
 
         $conn->commit();
         echo json_encode(['success' => true]);

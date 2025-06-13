@@ -109,19 +109,21 @@ if ($lecturer_id) {
                                 data-type="<?php echo htmlspecialchars($assessment['assessment_type']); ?>"
                                 data-weightage="<?php echo htmlspecialchars($assessment['weightage']); ?>"
                                 data-due="<?php 
-                                    // Fetch due date from calendar_events
                                     $due_date = '';
+                                    $event_id = '';
                                     $event_text = "Assessment Due: {$assessment['assessment_type']} for {$assessment['subject_name']}";
-                                    $due_stmt = $conn->prepare("SELECT event_date FROM calendar_events WHERE event_text = ? LIMIT 1");
+                                    $due_stmt = $conn->prepare("SELECT event_date, event_id FROM calendar_events WHERE event_text = ? LIMIT 1");
                                     $due_stmt->bind_param("s", $event_text);
                                     $due_stmt->execute();
                                     $due_result = $due_stmt->get_result();
                                     if ($due_row = $due_result->fetch_assoc()) {
                                         $due_date = $due_row['event_date'];
+                                        $event_id = $due_row['event_id'];
                                     }
                                     $due_stmt->close();
                                     echo htmlspecialchars($due_date);
                                 ?>"
+                                data-eventid="<?php echo htmlspecialchars($event_id); ?>"
                                 data-subject="<?php echo htmlspecialchars($assessment['subject_name']); ?>"
                                 data-subjectid="<?php echo $assessment['subject_id']; ?>"
                                 >
@@ -146,6 +148,7 @@ if ($lecturer_id) {
               <input type="hidden" name="assessment_id" id="edit-assessment-id">
               <input type="hidden" name="subject_id" id="edit-subject-id">
               <input type="hidden" name="old_assessment_type" id="edit-old-assessment-type">
+              <input type="hidden" name="event_id" id="edit-event-id">
               <div class="mb-3">
                 <label for="edit-assessment-type" class="form-label">Assessment Type</label>
                 <input type="text" class="form-control" name="assessment_type" id="edit-assessment-type" required>
@@ -179,6 +182,7 @@ if ($lecturer_id) {
           document.getElementById('edit-weightage').value = this.dataset.weightage;
           document.getElementById('edit-due-date').value = this.dataset.due;
           document.getElementById('edit-old-assessment-type').value = this.dataset.type;
+          document.getElementById('edit-event-id').value = this.dataset.eventid;
           editModal.show();
         });
       });

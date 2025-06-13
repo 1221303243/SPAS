@@ -39,37 +39,37 @@ $stmt->close();
             <div class="user-list">
                 <a href="lecturer_dashboard.php" class="course-link">
                     <i class="bi bi-journal-bookmark"></i>
-                    <div class="text-wrapper">Courses</div>
-                </a>
-            </div>
-            <div class="user-list">
-                <a href="calendar.php" class="course-link">
-                    <i class="bi bi-calendar-event"></i>
-                    <div class="text-wrapper">Calendar</div>
-                </a>
-            </div>
-            <div class="user-list">
-                <a href="grade.php" class="course-link">
-                    <i class="bi bi-card-checklist"></i>
-                    <div class="text-wrapper">Grade</div>
+                    <div class="text-wrapper">Class List</div>
                 </a>
             </div>
             <div class="user-list">
                 <a href="plan.php" class="course-link">
                     <i class="bi bi-calendar-week"></i>
-                    <div class="text-wrapper">Plan</div>
+                    <div class="text-wrapper">Assessment Plan</div>
                 </a>
             </div>
             <div class="user-list">
                 <a href="assessment.php" class="course-link">
                     <i class="bi bi-list-check"></i>
-                    <div class="text-wrapper">Assessment</div>
+                    <div class="text-wrapper">Assessment View</div>
                 </a>
             </div>
             <div class="user-list">
+                <a href="calendar.php" class="course-link">
+                    <i class="bi bi-calendar-event"></i>
+                    <div class="text-wrapper">Academic Calendar</div>
+                </a>
+            </div>
+            <div class="user-list">
+                <a href="grade.php" class="course-link">
+                    <i class="bi bi-card-checklist"></i>
+                    <div class="text-wrapper">Grade Input</div>
+                </a>
+            </div>            
+            <div class="user-list">
                 <a href="feedback_input.php" class="course-link">
                     <i class="bi bi-chat-dots"></i>
-                    <div class="text-wrapper">Input Feedback</div>
+                    <div class="text-wrapper">Feedback Input</div>
                 </a>
             </div>
         </div>
