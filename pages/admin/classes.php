@@ -8,11 +8,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_class'])) {
     $class_name = trim($_POST['className']);
     $subject_id = intval($_POST['subject']);
     $lecturer_id = intval($_POST['lecturer']);
+    $edu_level = $_POST['edu_level'] ?? 'Undergraduate';
     if (!$class_name || !$subject_id || !$lecturer_id) {
         $errors[] = 'All fields are required.';
     } else {
-        $stmt = $conn->prepare("INSERT INTO classes (class_name, subject_id, lecturer_id) VALUES (?, ?, ?)");
-        $stmt->bind_param("sii", $class_name, $subject_id, $lecturer_id);
+        $stmt = $conn->prepare("INSERT INTO classes (class_name, edu_level, subject_id, lecturer_id) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssii", $class_name, $edu_level, $subject_id, $lecturer_id);
         if ($stmt->execute()) {
             $success = true;
             header('Location: classes.php?success=1');
@@ -30,11 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_class'])) {
     $edit_class_name = trim($_POST['edit_className']);
     $edit_subject_id = intval($_POST['edit_subject']);
     $edit_lecturer_id = intval($_POST['edit_lecturer']);
+    $edit_edu_level = $_POST['edit_edu_level'] ?? 'Undergraduate';
     if (!$edit_class_id || !$edit_class_name || !$edit_subject_id || !$edit_lecturer_id) {
         $errors[] = 'All fields are required for editing.';
     } else {
-        $stmt = $conn->prepare("UPDATE classes SET class_name=?, subject_id=?, lecturer_id=? WHERE class_id=?");
-        $stmt->bind_param("siii", $edit_class_name, $edit_subject_id, $edit_lecturer_id, $edit_class_id);
+        $stmt = $conn->prepare("UPDATE classes SET class_name=?, edu_level=?, subject_id=?, lecturer_id=? WHERE class_id=?");
+        $stmt->bind_param("ssiii", $edit_class_name, $edit_edu_level, $edit_subject_id, $edit_lecturer_id, $edit_class_id);
         if ($stmt->execute()) {
             header('Location: classes.php?success=2');
             exit();
@@ -77,6 +79,9 @@ if ($result_lect) {
         $lecturers[] = $row;
     }
 }
+
+// At the top, get the filter value:
+$edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter'] : '';
 ?>
 <!DOCTYPE html>
 <html>
@@ -120,7 +125,19 @@ if ($result_lect) {
         <div class="search-filter-container">
             <div class="search-bar">
                 <span class="material-icons search-icon">search</span>
-                <input type="text" id="searchInput" placeholder="Search classes..." onkeyup="filterClasses()" />
+                <input type="text" id="searchInput" name="search" placeholder="Search classes..." value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" />
+            </div>
+            <div class="filter-options">
+                <form method="GET" style="display:flex;align-items:center;gap:8px;">
+                    <select name="edu_level_filter" class="filter-select">
+                        <option value="">All Levels</option>
+                        <option value="Foundation" <?php if($edu_level_filter==='Foundation') echo 'selected'; ?>>Foundation</option>
+                        <option value="Diploma" <?php if($edu_level_filter==='Diploma') echo 'selected'; ?>>Diploma</option>
+                        <option value="Undergraduate" <?php if($edu_level_filter==='Undergraduate') echo 'selected'; ?>>Undergraduate</option>
+                        <option value="Postgraduate" <?php if($edu_level_filter==='Postgraduate') echo 'selected'; ?>>Postgraduate</option>
+                    </select>
+                    <button type="submit" class="filters-btn"><span class="material-icons">filter_list</span>Apply</button>
+                </form>
             </div>
         </div>
 
@@ -130,6 +147,7 @@ if ($result_lect) {
                     <tr>
                         <th>Class ID</th>
                         <th>Class Name</th>
+                        <th>Education Level</th>
                         <th>Subject</th>
                         <th>Lecturer</th>
                         <th>Actions</th>
@@ -139,8 +157,31 @@ if ($result_lect) {
                 <?php
                 // Fetch all classes with subject and lecturer info (no status)
                 $classes = [];
-                $sql = "SELECT c.class_id, c.class_name, c.semester, c.year, s.subject_name, l.name AS lecturer_name FROM classes c LEFT JOIN subjects s ON c.subject_id = s.subject_id LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id ORDER BY c.class_id ASC";
-                $result = $conn->query($sql);
+                $sql = "SELECT c.class_id, c.class_name, c.edu_level, c.semester, c.year, s.subject_name, l.name AS lecturer_name, c.subject_id, c.lecturer_id FROM classes c LEFT JOIN subjects s ON c.subject_id = s.subject_id LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id";
+                $where = [];
+                $params = [];
+                $types = '';
+                if ($edu_level_filter) {
+                    $where[] = 'c.edu_level = ?';
+                    $params[] = $edu_level_filter;
+                    $types .= 's';
+                }
+                if (!empty($_GET['search'])) {
+                    $search = '%' . $_GET['search'] . '%';
+                    $where[] = '(c.class_name LIKE ? OR s.subject_name LIKE ? OR l.name LIKE ? OR c.class_id LIKE ? OR c.edu_level LIKE ? )';
+                    $params = array_merge($params, [$search, $search, $search, $search, $search]);
+                    $types .= 'sssss';
+                }
+                if ($where) {
+                    $sql .= ' WHERE ' . implode(' AND ', $where);
+                }
+                $sql .= ' ORDER BY c.class_id ASC';
+                $stmt = $conn->prepare($sql);
+                if ($params) {
+                    $stmt->bind_param($types, ...$params);
+                }
+                $stmt->execute();
+                $result = $stmt->get_result();
                 if ($result) {
                     while ($row = $result->fetch_assoc()) {
                         $classes[] = $row;
@@ -152,6 +193,7 @@ if ($result_lect) {
                         $class_json = htmlspecialchars(json_encode([
                             'class_id' => $class['class_id'],
                             'class_name' => $class['class_name'],
+                            'edu_level' => $class['edu_level'],
                             'subject_name' => $class['subject_name'],
                             'lecturer_name' => $class['lecturer_name'],
                             'subject_id' => $class['subject_id'] ?? '',
@@ -160,6 +202,7 @@ if ($result_lect) {
                         echo "<tr>";
                         echo "<td>" . htmlspecialchars($class['class_id']) . "</td>";
                         echo "<td>" . htmlspecialchars($class['class_name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($class['edu_level'] ?? '-') . "</td>";
                         echo "<td>" . htmlspecialchars($class['subject_name']) . "</td>";
                         echo "<td>" . htmlspecialchars($class['lecturer_name']) . "</td>";
                         echo "<td>";
@@ -208,6 +251,15 @@ if ($result_lect) {
                         <input type="text" id="className" name="className" required>
                     </div>
                     <div class="form-group">
+                        <label for="edu_level">Education Level</label>
+                        <select id="edu_level" name="edu_level" required>
+                            <option value="Foundation">Foundation</option>
+                            <option value="Diploma">Diploma</option>
+                            <option value="Undergraduate">Undergraduate</option>
+                            <option value="Postgraduate">Postgraduate</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="subject">Subject</label>
                         <select id="subject" name="subject" required>
                             <option value="">Select Subject</option>
@@ -246,6 +298,15 @@ if ($result_lect) {
                     <div class="form-group">
                         <label for="edit_className">Class Name</label>
                         <input type="text" id="edit_className" name="edit_className" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_edu_level">Education Level</label>
+                        <select id="edit_edu_level" name="edit_edu_level" required>
+                            <option value="Foundation">Foundation</option>
+                            <option value="Diploma">Diploma</option>
+                            <option value="Undergraduate">Undergraduate</option>
+                            <option value="Postgraduate">Postgraduate</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="edit_subject">Subject</label>
@@ -299,6 +360,7 @@ if ($result_lect) {
             var classData = JSON.parse(el.getAttribute('data-class'));
             document.getElementById('edit_class_id').value = classData.class_id;
             document.getElementById('edit_className').value = classData.class_name;
+            document.getElementById('edit_edu_level').value = classData.edu_level || 'Undergraduate';
             document.getElementById('edit_subject').value = classData.subject_id;
             document.getElementById('edit_lecturer').value = classData.lecturer_id;
             document.getElementById('editClassModal').style.display = 'block';

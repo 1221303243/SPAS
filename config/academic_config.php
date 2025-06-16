@@ -19,3 +19,18 @@ define('ASSESSMENT_TYPES', [
     'FINAL' => 'Final',
     'TEST' => 'Test'
 ]);
+
+function getCurrentTrimester($conn) {
+    $sql = "SELECT * FROM current_semester WHERE is_active = 1 LIMIT 1";
+    $result = $conn->query($sql);
+    if ($result && $row = $result->fetch_assoc()) {
+        return [
+            'id' => $row['id'],
+            'trimester_name' => $row['trimester_name'],
+            'start_date' => $row['start_date'],
+            'end_date' => $row['end_date'],
+            'is_active' => $row['is_active']
+        ];
+    }
+    return null;
+}

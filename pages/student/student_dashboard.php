@@ -52,13 +52,13 @@ $stmt->close();
     <title>SPAS - My Courses</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../css/dashboard.css" />
+    <link rel="stylesheet" href="../../css/dashboard_student.css" />
 </head>
 <body>
      <?php include 'sidebar_student.php'; ?>
 
     <!-- Main Content -->
-    <div class="container">
+    <div class="main-dashboard-content">
         <div class="header">
             <h1>My Class List</h1>
         </div>

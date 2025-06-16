@@ -27,25 +27,25 @@ $stmt->close();
 
 // Fetch assessment configurations for this lecturer's subjects
 $assessments = array();
-if ($lecturer_id) {
+if ($lecturer_id && isset($_SESSION['edu_level'])) {
+    $edu_level = $_SESSION['edu_level'];
     $sql = "SELECT DISTINCT
                 a.assessment_id,
                 a.subject_id,
                 a.assessment_type,
                 a.weightage,
                 s.subject_code,
-                s.subject_name
+                s.subject_name,
+                c.edu_level
             FROM assessment_plans a
             JOIN subjects s ON a.subject_id = s.subject_id
             JOIN classes c ON c.subject_id = s.subject_id
-            WHERE c.lecturer_id = ?
+            WHERE c.lecturer_id = ? AND c.edu_level = ?
             ORDER BY s.subject_name, a.assessment_type";
-    
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $lecturer_id);
+    $stmt->bind_param("is", $lecturer_id, $edu_level);
     $stmt->execute();
     $result = $stmt->get_result();
-    
     while ($row = $result->fetch_assoc()) {
         $assessments[] = $row;
     }
@@ -98,6 +98,7 @@ if ($lecturer_id) {
                     <div class="assessment-header">
                     <h4 class="mb-0"><?php echo htmlspecialchars($assessment['subject_name']); ?></h4>
                         <span class="subject-code"><?php echo htmlspecialchars($assessment['subject_code']); ?></span>
+                        <span class="edu-level-badge"><?php echo htmlspecialchars($assessment['edu_level']); ?></span>
                     </div>
                     <div class="assessment-body">
             <?php endif; ?>

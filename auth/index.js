@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 window.location.href = "../pages/student/student_dashboard.php";
             } 
             else if (data === "lecturer") {
-                window.location.href = "../pages/lecturer/lecturer_dashboard.php";
+                window.location.href = "../pages/lecturer/select_edu_level.php";
             } else {
                 errorMessage.textContent = data; // Show error like "Invalid password"
             }

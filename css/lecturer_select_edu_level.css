@@ -1,0 +1,36 @@
+body {
+    background: #f8f9fa;
+}
+
+.card {
+    border-radius: 16px;
+    border: none;
+}
+
+.edu-level-btn {
+    font-size: 1.2rem;
+    padding: 16px 0;
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    border: 2px solid #00C1FE;
+    color: #1F1235;
+    background: #fff;
+    font-weight: 500;
+}
+
+.edu-level-btn:hover, .edu-level-btn:focus {
+    background: #00C1FE;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0,193,254,0.08);
+    outline: none;
+}
+
+@media (max-width: 480px) {
+    .card {
+        padding: 1rem;
+    }
+    .edu-level-btn {
+        font-size: 1rem;
+        padding: 12px 0;
+    }
+} 

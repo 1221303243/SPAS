@@ -129,9 +129,124 @@ body {
     color: #fff;
 }
 
+.user-list .course-link {
+    background: none;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Rowdies', cursive;
+    font-size: 18px;
+    color: #006DB0;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+}
+
+.user-list .course-link:focus,
+.user-list .course-link:active {
+    outline: none;
+    box-shadow: none;
+}
+
+.user-list .dropdown-toggle::after {
+    margin-left: auto;
+    vertical-align: middle;
+}
+
+.user-list .dropdown-menu {
+    min-width: 180px;
+    left: 0;
+    top: 100%;
+    margin-top: 4px;
+}
+
 .course-link {
     display: flex;
     align-items: center;
     gap: 16px;
     text-decoration: none;
+}
+
+.dropdown {
+    position: relative;
+}
+
+.dropdown-menu {
+    z-index: 2000;
+}
+
+.sidebar-dropdown {
+    position: relative;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.sidebar-dropdown-menu {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    min-width: 100%;
+    z-index: 2000;
+    padding: 8px 0;
+    display: none;
+}
+
+.sidebar-dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    color: #006DB0;
+    font-family: 'Rowdies', cursive;
+    font-size: 18px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 10px;
+    background: #fff;
+    margin: 4px 0;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar-dropdown-menu .dropdown-item:hover {
+    background: #e6f4fa;
+    color: #005080;
+}
+
+.sidebar-dropdown .course-link {
+    background: #fff;
+    border: none;
+    border-radius: 10px;
+    box-shadow: none;
+    outline: none;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Rowdies', cursive;
+    font-size: 18px;
+    color: #006DB0;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar-dropdown .course-link:focus,
+.sidebar-dropdown .course-link:hover {
+    background: #e6f4fa;
+    color: #005080;
+    outline: none;
 }

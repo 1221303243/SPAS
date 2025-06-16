@@ -30,20 +30,23 @@ $stmt->close();
 
 if ($lecturer) {
     $lecturer_id = $lecturer['lecturer_id'];
-    // Fetch classes and subjects taught by this lecturer
-    $sql = "SELECT DISTINCT c.class_id, c.class_name, s.subject_code, s.subject_name, s.subject_id
-            FROM classes c
-            JOIN subjects s ON c.subject_id = s.subject_id
-            WHERE c.lecturer_id = ?
-            ORDER BY s.subject_name, c.class_name";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $lecturer_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        $classes[] = $row;
+    if (isset($_SESSION['edu_level'])) {
+        $edu_level = $_SESSION['edu_level'];
+        // Fetch classes and subjects taught by this lecturer and education level
+        $sql = "SELECT DISTINCT c.class_id, c.class_name, s.subject_code, s.subject_name, s.subject_id, c.edu_level
+                FROM classes c
+                JOIN subjects s ON c.subject_id = s.subject_id
+                WHERE c.lecturer_id = ? AND c.edu_level = ?
+                ORDER BY s.subject_name, c.class_name";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("is", $lecturer_id, $edu_level);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $classes[] = $row;
+        }
+        $stmt->close();
     }
-    $stmt->close();
 }
 
 // Get selected class_id from URL if any
@@ -158,8 +161,9 @@ if ($selected_class_id > 0) {
                             <select class="form-select" id="classSelect" onchange="window.location.href='grade.php?class_id=' + this.value">
                                 <option value="" <?php echo $selected_class_id === 0 ? 'selected' : ''; ?> disabled>Choose a class...</option>
                                 <?php foreach ($classes as $class): ?>
-                                    <option value="<?php echo $class['class_id']; ?>" <?php echo $selected_class_id === $class['class_id'] ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($class['subject_name'] . ' (' . $class['subject_code'] . ') - ' . $class['class_name']); ?>
+                                    <option value="<?php echo $class['class_id']; ?>" <?php echo $selected_class_id === $class['class_id'] ? 'selected' : ''; ?>
+                                        >
+                                        <?php echo htmlspecialchars($class['subject_name'] . ' (' . $class['subject_code'] . ') - ' . $class['class_name'] . ' [' . $class['edu_level'] . ']'); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

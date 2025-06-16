@@ -115,22 +115,39 @@ $coursework_status = $coursework_percentage >= $coursework_pass_mark ? 'PASS' : 
 $final_exam_status = $final_exam_percentage >= $final_exam_pass_mark ? 'PASS' : 'FAIL';
 $overall_status = ($coursework_status === 'PASS' && $final_exam_status === 'PASS') ? 'PASS' : 'FAIL';
 
-// Get the final grade from the grades table
-$grade_sql = "
-    SELECT grade
-    FROM grades
-    WHERE student_id = ? AND class_id = ?
-    ORDER BY date_recorded DESC, grade_id DESC
-    LIMIT 1
-";
-$grade_stmt = $conn->prepare($grade_sql);
-$grade_stmt->bind_param("ii", $student_id, $class_id);
-$grade_stmt->execute();
-$grade_result = $grade_stmt->get_result();
-$grade_row = $grade_result->fetch_assoc();
-$grade_stmt->close();
+// Function to calculate final letter grade based on overall percentage and status
+function calculateOverallGrade($overallPercentage, $overallStatus) {
+    if ($overallStatus === 'FAIL') {
+        return 'F'; // If overall status is FAIL, the grade is F
+    }
 
-$final_grade = $grade_row ? $grade_row['grade'] : '';
+    if ($overallPercentage >= 95) {
+        return 'A+';
+    } elseif ($overallPercentage >= 90) {
+        return 'A';
+    } elseif ($overallPercentage >= 85) {
+        return 'A-';
+    } elseif ($overallPercentage >= 80) {
+        return 'B+';
+    } elseif ($overallPercentage >= 75) {
+        return 'B';
+    } elseif ($overallPercentage >= 70) {
+        return 'B-';
+    } elseif ($overallPercentage >= 65) {
+        return 'C+';
+    } elseif ($overallPercentage >= 60) {
+        return 'C';
+    } elseif ($overallPercentage >= 55) {
+        return 'C-';
+    } elseif ($overallPercentage >= 50) {
+        return 'D';
+    } else {
+        return 'F'; // Should ideally be caught by overallStatus 'FAIL' but as a fallback
+    }
+}
+
+// Calculate the final grade based on the overall percentage and status
+$final_grade = calculateOverallGrade($overall_percentage, $overall_status);
 
 // Map grade to Bootstrap color class
 function getGradeColorClass($grade) {
@@ -168,8 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 INSERT INTO grades (student_id, subject_id, assessment_id, class_id, marks, category, date_recorded)
                 VALUES (?, ?, ?, ?, ?, ?, NOW())
                 ON DUPLICATE KEY UPDATE 
-                    marks = VALUES(marks),
-                    date_recorded = NOW()
+                    marks = VALUES(marks)
             ");
             $stmt->bind_param("iiiids", 
                 $student_id, 
@@ -181,11 +197,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             );
             
             if ($stmt->execute()) {
+                // Fetch all assessments and their weightages for this student, subject, and class
+                $assessments_sql = "
+                    SELECT ap.assessment_id, ap.weightage, ap.category, g.marks
+                    FROM assessment_plans ap
+                    LEFT JOIN grades g ON g.assessment_id = ap.assessment_id AND g.student_id = ? AND g.class_id = ?
+                    WHERE ap.subject_id = ?
+                    ORDER BY ap.category, ap.assessment_id
+                ";
+                $assessments_stmt = $conn->prepare($assessments_sql);
+                $assessments_stmt->bind_param("iii", $student_id, $class_id, $assessment['subject_id']);
+                $assessments_stmt->execute();
+                $result = $assessments_stmt->get_result();
+                $coursework_total = 0;
+                $final_exam_total = 0;
+                $total_marks = 0;
+                $coursework_weight = 0;
+                $final_exam_weight = 0;
+                $assessment_data = [];
+                while ($row = $result->fetch_assoc()) {
+                    $marks = is_null($row['marks']) ? null : floatval($row['marks']);
+                    $weighted_marks = !is_null($marks) ? $marks * $row['weightage'] / 100 : 0;
+                    $assessment_data[$row['assessment_id']] = [
+                        'weightage' => $row['weightage'],
+                        'category' => $row['category'],
+                        'marks' => $marks,
+                        'weighted_marks' => $weighted_marks
+                    ];
+                    if ($row['category'] === 'coursework') {
+                        $coursework_total += $weighted_marks;
+                        $coursework_weight += $row['weightage'];
+                    } else {
+                        $final_exam_total += $weighted_marks;
+                        $final_exam_weight += $row['weightage'];
+                    }
+                }
+                $assessments_stmt->close();
+                $total_marks = $coursework_total + $final_exam_total;
+                // Calculate grade (same as grade_submit.php logic)
+                $grade = '';
+                $coursework_pass = ($coursework_weight > 0) ? ($coursework_total >= ($coursework_weight / 2)) : true;
+                $final_exam_pass = ($final_exam_weight > 0) ? ($final_exam_total >= ($final_exam_weight / 2)) : true;
+                if ($coursework_pass && $final_exam_pass) {
+                    if ($total_marks >= 90) {
+                        $grade = 'A+';
+                    } elseif ($total_marks >= 85) {
+                        $grade = 'A';
+                    } elseif ($total_marks >= 80) {
+                        $grade = 'A-';
+                    } elseif ($total_marks >= 75) {
+                        $grade = 'B+';
+                    } elseif ($total_marks >= 70) {
+                        $grade = 'B';
+                    } elseif ($total_marks >= 65) {
+                        $grade = 'B-';
+                    } elseif ($total_marks >= 60) {
+                        $grade = 'C+';
+                    } elseif ($total_marks >= 55) {
+                        $grade = 'C';
+                    } elseif ($total_marks >= 50) {
+                        $grade = 'C-';
+                    } elseif ($total_marks >= 45) {
+                        $grade = 'D';
+                    } else {
+                        $grade = 'F';
+                    }
+                } else {
+                    $grade = 'F';
+                }
+                // Update all grades for this student, subject, and class with cumulative total_marks
+                $cumulative_total = 0;
+                foreach ($assessment_data as $aid => $adata) {
+                    $cumulative_total += $adata['weighted_marks'];
+                    $update = $conn->prepare("
+                        UPDATE grades
+                        SET weighted_marks = ?, coursework_total = ?, final_exam_total = ?, total_marks = ?, grade = ?
+                        WHERE student_id = ? AND class_id = ? AND subject_id = ? AND assessment_id = ?
+                    ");
+                    $update->bind_param("ddddsiiii", $adata['weighted_marks'], $coursework_total, $final_exam_total, $cumulative_total, $grade, $student_id, $class_id, $assessment['subject_id'], $aid);
+                    $update->execute();
+                    $update->close();
+                }
                 $_SESSION['success'] = "Grade updated successfully.";
             } else {
                 $_SESSION['error'] = "Error updating grade.";
             }
-            $stmt->close();
         } else {
             $_SESSION['error'] = "Invalid assessment.";
         }

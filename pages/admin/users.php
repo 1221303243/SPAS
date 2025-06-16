@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     $email = trim($_POST['email']);
     $role = $_POST['role'];
     $password = $_POST['password'];
+    $edu_level = $_POST['edu_level'] ?? 'Undergraduate';
     $errors = [];
 
     if (!$name || !$email || !$role || !$password) {
@@ -26,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             $user_id = $stmt->insert_id;
             $stmt->close();
             if ($role === 'student') {
-                $stmt2 = $conn->prepare("INSERT INTO students (user_id, name) VALUES (?, ?)");
-                $stmt2->bind_param("is", $user_id, $name);
+                $stmt2 = $conn->prepare("INSERT INTO students (user_id, name, edu_level) VALUES (?, ?, ?)");
+                $stmt2->bind_param("iss", $user_id, $name, $edu_level);
                 $stmt2->execute();
                 $stmt2->close();
             } elseif ($role === 'lecturer') {
@@ -55,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
     $name = trim($_POST['edit_name']);
     $email = trim($_POST['edit_email']);
     $role = $_POST['edit_role'];
+    $edu_level = $_POST['edit_edu_level'] ?? 'Undergraduate';
     $errors = [];
     if (!$name || !$email || !$role) {
         $errors[] = 'All fields are required.';
@@ -68,8 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
         $stmt->execute();
         $stmt->close();
         if ($role === 'student') {
-            $stmt2 = $conn->prepare("UPDATE students SET name=? WHERE user_id=?");
-            $stmt2->bind_param("si", $name, $user_id);
+            $stmt2 = $conn->prepare("UPDATE students SET name=?, edu_level=? WHERE user_id=?");
+            $stmt2->bind_param("ssi", $name, $edu_level, $user_id);
             $stmt2->execute();
             $stmt2->close();
         } elseif ($role === 'lecturer') {
@@ -137,7 +139,7 @@ foreach ($roles as $role_key => $role_label) {
         }
     }
     if ($role_key === 'student') {
-        $sql = "SELECT u.user_id, u.username, u.email, u.role, s.student_id FROM users u LEFT JOIN students s ON u.user_id = s.user_id WHERE $where";
+        $sql = "SELECT u.user_id, u.username, u.email, u.role, s.student_id, s.edu_level FROM users u LEFT JOIN students s ON u.user_id = s.user_id WHERE $where";
     } elseif ($role_key === 'lecturer') {
         $sql = "SELECT u.user_id, u.username, u.email, u.role, l.lecturer_id FROM users u LEFT JOIN lecturers l ON u.user_id = l.user_id WHERE $where";
     } else {
@@ -247,6 +249,7 @@ foreach ($roles as $role_key => $role_label) {
                             <th>User ID</th>
                             <?php if ($role_key === 'student'): ?>
                                 <th>Student ID</th>
+                                <th>Education Level</th>
                             <?php elseif ($role_key === 'lecturer'): ?>
                                 <th>Lecturer ID</th>
                             <?php elseif ($role_key === 'admin'): ?>
@@ -265,6 +268,7 @@ foreach ($roles as $role_key => $role_label) {
                                 <td><?php echo htmlspecialchars($user['user_id']); ?></td>
                                 <?php if ($role_key === 'student'): ?>
                                     <td><?php echo htmlspecialchars($user['student_id'] ?? '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($user['edu_level'] ?? '-'); ?></td>
                                 <?php elseif ($role_key === 'lecturer'): ?>
                                     <td><?php echo htmlspecialchars($user['lecturer_id'] ?? '-'); ?></td>
                                 <?php elseif ($role_key === 'admin'): ?>
@@ -281,7 +285,8 @@ foreach ($roles as $role_key => $role_label) {
                                         'role' => $user['role'],
                                         'student_id' => $user['student_id'] ?? null,
                                         'lecturer_id' => $user['lecturer_id'] ?? null,
-                                        'admin_id' => $user['admin_id'] ?? null
+                                        'admin_id' => $user['admin_id'] ?? null,
+                                        'edu_level' => $user['edu_level'] ?? null
                                     ])); ?>)'>edit</span>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
                                         <input type="hidden" name="delete_user" value="1">
@@ -296,7 +301,8 @@ foreach ($roles as $role_key => $role_label) {
                                         'role' => $user['role'],
                                         'student_id' => $user['student_id'] ?? null,
                                         'lecturer_id' => $user['lecturer_id'] ?? null,
-                                        'admin_id' => $user['admin_id'] ?? null
+                                        'admin_id' => $user['admin_id'] ?? null,
+                                        'edu_level' => $user['edu_level'] ?? null
                                     ])); ?>)'>View Details</button>
                                 </td>
                             </tr>
@@ -339,6 +345,15 @@ foreach ($roles as $role_key => $role_label) {
                         <label for="password">Password</label>
                         <input type="password" id="password" name="password" required>
                     </div>
+                    <div class="form-group" id="add-edu-level-group" style="display:none;">
+                        <label for="add_edu_level">Education Level</label>
+                        <select id="add_edu_level" name="edu_level">
+                            <option value="Foundation">Foundation</option>
+                            <option value="Diploma">Diploma</option>
+                            <option value="Undergraduate">Undergraduate</option>
+                            <option value="Postgraduate">Postgraduate</option>
+                        </select>
+                    </div>
                     <div class="form-actions">
                         <button type="button" class="cancel-btn" onclick="closeAddUserModal()">Cancel</button>
                         <button type="submit" class="save-btn">Save User</button>
@@ -364,6 +379,15 @@ foreach ($roles as $role_key => $role_label) {
                     <div class="form-group">
                         <label for="edit_email">Email</label>
                         <input type="email" id="edit_email" name="edit_email" required>
+                    </div>
+                    <div class="form-group" id="edit-edu-level-group" style="display:none;">
+                        <label for="edit_edu_level">Education Level</label>
+                        <select id="edit_edu_level" name="edit_edu_level">
+                            <option value="Foundation">Foundation</option>
+                            <option value="Diploma">Diploma</option>
+                            <option value="Undergraduate">Undergraduate</option>
+                            <option value="Postgraduate">Postgraduate</option>
+                        </select>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="cancel-btn" onclick="closeEditUserModal()">Cancel</button>
@@ -399,6 +423,7 @@ foreach ($roles as $role_key => $role_label) {
             document.getElementById('edit_name').value = user.name;
             document.getElementById('edit_email').value = user.email;
             document.getElementById('edit_role').value = user.role;
+            setEditEduLevelVisibility(user.role, user.edu_level);
             document.getElementById('editUserModal').style.display = 'block';
         }
 
@@ -429,6 +454,7 @@ foreach ($roles as $role_key => $role_label) {
             html += `<dt style='font-weight:600;margin-bottom:4px;'>Name</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${user.name || '-'}</dd>`;
             html += `<dt style='font-weight:600;margin-bottom:4px;'>Email</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${user.email || '-'}</dd>`;
             html += `<dt style='font-weight:600;margin-bottom:4px;'>Role</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${roleBadge}</dd>`;
+            html += `<dt style='font-weight:600;margin-bottom:4px;'>Education Level</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${user.edu_level || '-'}</dd>`;
             html += `</dl></div>`;
             document.getElementById('viewUserBody').innerHTML = html;
             document.getElementById('viewUserModal').style.display = 'block';
@@ -447,6 +473,33 @@ foreach ($roles as $role_key => $role_label) {
             if (event.target == editModal) editModal.style.display = 'none';
             if (event.target == viewModal) viewModal.style.display = 'none';
         }
+
+        // Add User Modal: show edu_level if student
+        const addRoleSelect = document.getElementById('role');
+        const addEduLevelGroup = document.getElementById('add-edu-level-group');
+        addRoleSelect.addEventListener('change', function() {
+            addEduLevelGroup.style.display = (this.value === 'student') ? 'block' : 'none';
+        });
+
+        // Edit User Modal: show edu_level if student
+        const editRoleInput = document.getElementById('edit_role');
+        const editEduLevelGroup = document.getElementById('edit-edu-level-group');
+        const editEduLevelSelect = document.getElementById('edit_edu_level');
+        function setEditEduLevelVisibility(role, eduLevel) {
+            if (role === 'student') {
+                editEduLevelGroup.style.display = 'block';
+                if (eduLevel) editEduLevelSelect.value = eduLevel;
+            } else {
+                editEduLevelGroup.style.display = 'none';
+            }
+        }
+
+        // Patch openEditUserModal to set edu_level
+        const originalOpenEditUserModal = openEditUserModal;
+        openEditUserModal = function(user) {
+            originalOpenEditUserModal(user);
+            setEditEduLevelVisibility(user.role, user.edu_level);
+        };
     </script>
 </body>
 </html>

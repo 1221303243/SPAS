@@ -25,13 +25,11 @@ $lecturer_id = $lecturer ? $lecturer['lecturer_id'] : null;
 
 // Fetch subjects/classes taught by this lecturer
 $subjects = [];
-if ($lecturer_id) {
-    $sql = "SELECT DISTINCT s.subject_name, s.subject_id, s.subject_code, c.class_id, c.class_name
-            FROM classes c
-            JOIN subjects s ON c.subject_id = s.subject_id
-            WHERE c.lecturer_id = ?";
+if ($lecturer_id && isset($_SESSION['edu_level'])) {
+    $edu_level = $_SESSION['edu_level'];
+    $sql = "SELECT DISTINCT s.subject_name, s.subject_id, s.subject_code, c.class_id, c.class_name, c.edu_level FROM classes c JOIN subjects s ON c.subject_id = s.subject_id WHERE c.lecturer_id = ? AND c.edu_level = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $lecturer_id);
+    $stmt->bind_param("is", $lecturer_id, $edu_level);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -111,7 +109,7 @@ if ($lecturer_id) {
             <select name="subject" required>
                 <?php foreach ($subjects as $subj): ?>
                     <option value="<?php echo htmlspecialchars($subj['subject_name']); ?>">
-                        <?php echo htmlspecialchars($subj['subject_name'] . ' (' . $subj['subject_code'] . ') - ' . $subj['class_name']); ?>
+                        <?php echo htmlspecialchars($subj['subject_name'] . ' (' . $subj['subject_code'] . ') - ' . $subj['class_name'] . ' [' . $subj['edu_level'] . ']'); ?>
                     </option>
                 <?php endforeach; ?>
             </select>

@@ -29,6 +29,7 @@ $stmt->close();
     <link rel="stylesheet" href="../../css/sidebar_lecturer.css" />
     <link href="https://fonts.googleapis.com/css2?family=Rowdies:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="sidebar">
@@ -36,11 +37,18 @@ $stmt->close();
             <div class="text-wrapper-spas">SPAS</div>
         </div>
         <div class="navigation">
-            <div class="user-list">
-                <a href="lecturer_dashboard.php" class="course-link">
+            <div class="sidebar-dropdown">
+                <button class="course-link" id="classListDropdownBtn" type="button">
                     <i class="bi bi-journal-bookmark"></i>
-                    <div class="text-wrapper">Class List</div>
-                </a>
+                    <span class="text-wrapper">Class List</span>
+                    <span style="margin-left:auto;"><i class="bi bi-caret-down-fill"></i></span>
+                </button>
+                <div class="sidebar-dropdown-menu" id="classListDropdownMenu" style="display: none;">
+                    <a class="dropdown-item" href="set_edu_level.php?edu_level=Foundation">Foundation</a>
+                    <a class="dropdown-item" href="set_edu_level.php?edu_level=Diploma">Diploma</a>
+                    <a class="dropdown-item" href="set_edu_level.php?edu_level=Undergraduate">Undergraduate</a>
+                    <a class="dropdown-item" href="set_edu_level.php?edu_level=Postgraduate">Postgraduate</a>
+                </div>
             </div>
             <div class="user-list">
                 <a href="plan.php" class="course-link">
@@ -101,5 +109,17 @@ $stmt->close();
             }
         }
     </script>
+    <script>
+    document.getElementById('classListDropdownBtn').onclick = function(event) {
+        event.stopPropagation();
+        var menu = document.getElementById('classListDropdownMenu');
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+    };
+    window.addEventListener('click', function(event) {
+        var menu = document.getElementById('classListDropdownMenu');
+        if (menu) menu.style.display = 'none';
+    });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -30,11 +30,12 @@ $lecturer_id = $lecturer ? $lecturer['lecturer_id'] : null;
 $stmt->close();
 
 $subjects = array();
-if ($lecturer_id) {
-    // Fetch subject name and code for classes taught by this lecturer
-    $sql = "SELECT DISTINCT c.class_id, s.subject_name, s.subject_code FROM classes c JOIN subjects s ON c.subject_id = s.subject_id WHERE c.lecturer_id = ?";
+if ($lecturer_id && isset($_SESSION['edu_level'])) {
+    $edu_level = $_SESSION['edu_level'];
+    // Fetch subject name, code, and class for classes taught by this lecturer and matching the selected education level
+    $sql = "SELECT DISTINCT c.class_id, s.subject_name, s.subject_code, c.class_name, c.edu_level FROM classes c JOIN subjects s ON c.subject_id = s.subject_id WHERE c.lecturer_id = ? AND c.edu_level = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $lecturer_id);
+    $stmt->bind_param("is", $lecturer_id, $edu_level);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -58,15 +59,15 @@ if ($lecturer_id) {
     <?php include 'sidebar_lecturer.php'; ?>
 
     <!-- Main Content -->
-    <div class="container">
+    <div class="main-dashboard-content">
         <div class="header">
-            <h1>My Class List</h1>
+            <h1>My Class List<?php if (isset($_SESSION['edu_level'])) echo ' (' . htmlspecialchars($_SESSION['edu_level']) . ')'; ?></h1>
         </div>
 
         <!-- List of Subjects -->
         <?php
         if (empty($subjects)) {
-            echo '<p>You are not assigned to any subjects.</p>';
+            echo '<p>You are not assigned to any subjects for this education level.</p>';
         } else {
             foreach ($subjects as $subject) {
                 echo '<a href="student_list.php?class_id=' . urlencode($subject['class_id']) . '" style="text-decoration:none;color:inherit;">';
@@ -76,6 +77,7 @@ if ($lecturer_id) {
                 echo '</div>';
                 echo '<div class="subject-info">';
                 echo '<h3>' . htmlspecialchars($subject['subject_name']) . ' (' . htmlspecialchars($subject['subject_code']) . ')</h3>';
+                echo '<div class="edu-level-badge">' . htmlspecialchars($subject['edu_level']) . '</div>';
                 echo '</div>';
                 echo '</div>';
                 echo '</a>';

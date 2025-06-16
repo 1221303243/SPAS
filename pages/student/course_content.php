@@ -50,9 +50,17 @@ $stmt->bind_result($subjectName);
 $stmt->fetch();
 $stmt->close();
 
-$semester_start = new DateTime(SEMESTER_START_DATE);
-$semester_end = clone $semester_start;
-$semester_end->modify('+' . (SEMESTER_WEEKS - 1) . ' weeks');
+$current_trimester = getCurrentTrimester($conn);
+if ($current_trimester) {
+    $semester_start = new DateTime($current_trimester['start_date']);
+    $semester_end = new DateTime($current_trimester['end_date']);
+} else {
+    $semester_start = new DateTime(SEMESTER_START_DATE);
+    $semester_end = clone $semester_start;
+    $semester_end->modify('+' . (SEMESTER_WEEKS - 1) . ' weeks');
+    // Optionally, for debugging, you can display a warning:
+    // echo '<div style="color:orange;">No active trimester is set. Using default semester dates.</div>';
+}
 
 // Get all assessments for this subject
 $assessments = [];
@@ -115,8 +123,8 @@ if ($subject_id) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
-        var semesterStartDate = new Date('<?php echo SEMESTER_START_DATE; ?>');
-        var semesterEndDate = new Date('<?php echo $semester_end->format('Y-m-d'); ?>');
+        var semesterStartDate = new Date('<?php echo $current_trimester ? $current_trimester['start_date'] : SEMESTER_START_DATE; ?>');
+        var semesterEndDate = new Date('<?php echo $current_trimester ? $current_trimester['end_date'] : $semester_end->format('Y-m-d'); ?>');
         google.charts.load('current', {'packages':['corechart']});
         google.charts.setOnLoadCallback(drawChart);
 

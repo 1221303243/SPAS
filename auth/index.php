@@ -10,7 +10,7 @@ if (isset($_SESSION['role'])) {
         header("Location: ../pages/student/student_dashboard.php");
         exit();
     } elseif ($_SESSION['role'] == 'lecturer') {
-        header("Location: ../pages/lecturer/lecturer_dashboard.php");
+        header("Location: ../pages/lecturer/select_edu_level.php");
         exit();
     }
 }

@@ -23,13 +23,16 @@ $stmt->fetch();
 $stmt->close();
 
 // Fetch classes taught by this lecturer
-$class_sql = "SELECT c.class_id, c.class_name, s.subject_name FROM classes c JOIN subjects s ON c.subject_id = s.subject_id WHERE c.lecturer_id = ?";
-$stmt = $conn->prepare($class_sql);
-$stmt->bind_param('i', $lecturer_id);
-$stmt->execute();
-$class_result = $stmt->get_result();
-$classes = $class_result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+if (isset($_SESSION['edu_level'])) {
+    $edu_level = $_SESSION['edu_level'];
+    $class_sql = "SELECT c.class_id, c.class_name, s.subject_name, c.edu_level FROM classes c JOIN subjects s ON c.subject_id = s.subject_id WHERE c.lecturer_id = ? AND c.edu_level = ?";
+    $stmt = $conn->prepare($class_sql);
+    $stmt->bind_param('is', $lecturer_id, $edu_level);
+    $stmt->execute();
+    $class_result = $stmt->get_result();
+    $classes = $class_result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+}
 
 // Fetch students and assessments if class is selected
 $students = $assessments = [];
@@ -110,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="">Select Class</option>
             <?php foreach ($classes as $class): ?>
                 <option value="<?php echo $class['class_id']; ?>" <?php if (isset($_GET['class_id']) && $_GET['class_id'] == $class['class_id']) echo 'selected'; ?>>
-                    <?php echo htmlspecialchars($class['class_name'] . ' (' . $class['subject_name'] . ')'); ?>
+                    <?php echo htmlspecialchars($class['class_name'] . ' (' . $class['subject_name'] . ') [' . $class['edu_level'] . ']'); ?>
                 </option>
             <?php endforeach; ?>
         </select>

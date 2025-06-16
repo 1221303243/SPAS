@@ -7,13 +7,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_subject'])) {
     $subject_name = trim($_POST['subjectName']);
     $description = trim($_POST['description']);
     $lecturer_id = $_POST['lecturer'];
+    $edu_level = $_POST['edu_level'] ?? 'Undergraduate';
     $errors = [];
     if (!$subject_code || !$subject_name || !$description || !$lecturer_id) {
         $errors[] = 'All fields are required.';
     }
     if (empty($errors)) {
-        $stmt = $conn->prepare("INSERT INTO subjects (subject_code, subject_name, description, lecturer_id) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("sssi", $subject_code, $subject_name, $description, $lecturer_id);
+        $stmt = $conn->prepare("INSERT INTO subjects (subject_code, subject_name, description, edu_level, lecturer_id) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssi", $subject_code, $subject_name, $description, $edu_level, $lecturer_id);
         if ($stmt->execute()) {
             header('Location: subjects.php?success=1');
             exit();
@@ -31,13 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_subject'])) {
     $subject_name = trim($_POST['edit_subjectName']);
     $description = trim($_POST['edit_description']);
     $lecturer_id = $_POST['edit_lecturer'];
+    $edu_level = $_POST['edit_edu_level'] ?? 'Undergraduate';
     $errors = [];
     if (!$subject_code || !$subject_name || !$description || !$lecturer_id) {
         $errors[] = 'All fields are required.';
     }
     if (empty($errors)) {
-        $stmt = $conn->prepare("UPDATE subjects SET subject_code=?, subject_name=?, description=?, lecturer_id=? WHERE subject_id=?");
-        $stmt->bind_param("sssii", $subject_code, $subject_name, $description, $lecturer_id, $subject_id);
+        $stmt = $conn->prepare("UPDATE subjects SET subject_code=?, subject_name=?, description=?, edu_level=?, lecturer_id=? WHERE subject_id=?");
+        $stmt->bind_param("ssssii", $subject_code, $subject_name, $description, $edu_level, $lecturer_id, $subject_id);
         if ($stmt->execute()) {
             header('Location: subjects.php?success=2');
             exit();
@@ -71,18 +73,43 @@ if ($result_lect) {
     }
 }
 
+// At the top, get the filter value:
+$edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter'] : '';
+
 // Fetch all subjects from the database
 $subjects = [];
-$sql = "SELECT s.subject_id, s.subject_code, s.subject_name, s.description, s.lecturer_id, l.name AS lecturer_name
+$sql = "SELECT s.subject_id, s.subject_code, s.subject_name, s.description, s.edu_level, s.lecturer_id, l.name AS lecturer_name
         FROM subjects s
-        LEFT JOIN lecturers l ON s.lecturer_id = l.lecturer_id
-        ORDER BY s.subject_id ASC";
-$result = $conn->query($sql);
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $subjects[] = $row;
-    }
+        LEFT JOIN lecturers l ON s.lecturer_id = l.lecturer_id";
+$where = [];
+$params = [];
+$types = '';
+if ($edu_level_filter) {
+    $where[] = 's.edu_level = ?';
+    $params[] = $edu_level_filter;
+    $types .= 's';
 }
+if (!empty($_GET['search'])) {
+    $search = '%' . $_GET['search'] . '%';
+    $where[] = '(s.subject_name LIKE ? OR s.subject_code LIKE ? OR s.description LIKE ? OR l.name LIKE ? OR s.edu_level LIKE ? )';
+    $params = array_merge($params, [$search, $search, $search, $search, $search]);
+    $types .= 'sssss';
+}
+if ($where) {
+    $sql .= ' WHERE ' . implode(' AND ', $where);
+}
+$sql .= ' ORDER BY s.subject_id ASC';
+$stmt = $conn->prepare($sql);
+if ($params) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$result = $stmt->get_result();
+$subjects = [];
+while ($row = $result->fetch_assoc()) {
+    $subjects[] = $row;
+}
+$stmt->close();
 ?>
 <!DOCTYPE html>
 <html>
@@ -121,12 +148,31 @@ if ($result) {
             </div>
         <?php endif; ?>
         <div class="subjects-list-container">
+            <div class="search-filter-container">
+                <form method="GET" style="width:100%;">
+                    <div class="search-bar" style="position:relative; margin-bottom:0;">
+                        <span class="material-icons search-icon" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#6c757d; font-size:20px;">search</span>
+                        <input type="text" name="search" placeholder="Search subjects..." value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" style="padding-left:44px; width:100%;" />
+                    </div>
+                    <div class="filter-options" style="margin-top:16px;display:flex;align-items:center;gap:8px;">
+                        <select name="edu_level_filter" class="filter-select">
+                            <option value="">All Levels</option>
+                            <option value="Foundation" <?php if($edu_level_filter==='Foundation') echo 'selected'; ?>>Foundation</option>
+                            <option value="Diploma" <?php if($edu_level_filter==='Diploma') echo 'selected'; ?>>Diploma</option>
+                            <option value="Undergraduate" <?php if($edu_level_filter==='Undergraduate') echo 'selected'; ?>>Undergraduate</option>
+                            <option value="Postgraduate" <?php if($edu_level_filter==='Postgraduate') echo 'selected'; ?>>Postgraduate</option>
+                        </select>
+                        <button type="submit" class="filters-btn"><span class="material-icons">filter_list</span>Apply</button>
+                    </div>
+                </form>
+            </div>
             <table class="subjects-list-table">
                 <thead>
                     <tr>
                         <th>Subject Code</th>
                         <th>Subject Name</th>
                         <th>Description</th>
+                        <th>Education Level</th>
                         <th>Lecturer</th>
                         <th>Actions</th>
                     </tr>
@@ -138,6 +184,7 @@ if ($result) {
                             <td><?php echo htmlspecialchars($subject['subject_code']); ?></td>
                             <td><?php echo htmlspecialchars($subject['subject_name']); ?></td>
                             <td><?php echo htmlspecialchars($subject['description']); ?></td>
+                            <td><?php echo htmlspecialchars($subject['edu_level'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($subject['lecturer_name']); ?></td>
                             <td>
                                 <span class='material-icons edit-btn'
@@ -146,6 +193,7 @@ if ($result) {
                                         'subject_code' => $subject['subject_code'],
                                         'subject_name' => $subject['subject_name'],
                                         'description' => $subject['description'],
+                                        'edu_level' => $subject['edu_level'],
                                         'lecturer_id' => $subject['lecturer_id']
                                     ]), ENT_QUOTES, 'UTF-8'); ?>'
                                     onclick='openEditSubjectModal(this)'>edit</span>
@@ -183,6 +231,15 @@ if ($result) {
                     <div class="form-group">
                         <label for="description">Description</label>
                         <textarea id="description" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edu_level">Education Level</label>
+                        <select id="edu_level" name="edu_level" required>
+                            <option value="Foundation">Foundation</option>
+                            <option value="Diploma">Diploma</option>
+                            <option value="Undergraduate">Undergraduate</option>
+                            <option value="Postgraduate">Postgraduate</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="lecturer">Lecturer</label>
@@ -223,6 +280,15 @@ if ($result) {
                         <textarea id="edit_description" name="edit_description" rows="3" required></textarea>
                     </div>
                     <div class="form-group">
+                        <label for="edit_edu_level">Education Level</label>
+                        <select id="edit_edu_level" name="edit_edu_level" required>
+                            <option value="Foundation">Foundation</option>
+                            <option value="Diploma">Diploma</option>
+                            <option value="Undergraduate">Undergraduate</option>
+                            <option value="Postgraduate">Postgraduate</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="edit_lecturer">Lecturer</label>
                         <select id="edit_lecturer" name="edit_lecturer" required>
                             <option value="">Select Lecturer</option>
@@ -253,6 +319,7 @@ if ($result) {
         document.getElementById('edit_subjectCode').value = subject.subject_code;
         document.getElementById('edit_subjectName').value = subject.subject_name;
         document.getElementById('edit_description').value = subject.description;
+        document.getElementById('edit_edu_level').value = subject.edu_level || 'Undergraduate';
         document.getElementById('edit_lecturer').value = subject.lecturer_id;
         document.getElementById('editSubjectModal').style.display = 'block';
     }

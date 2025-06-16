@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once '../../auth/db_connection.php';
 require_once '../../config/academic_config.php';
 
 // Check if user is logged in and is admin
@@ -62,6 +63,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Handle set trimester form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set_trimester'])) {
+    $trimester_name = trim($_POST['trimester_name']);
+    $start_date = $_POST['start_date'];
+    $end_date = $_POST['end_date'];
+    if ($trimester_name && $start_date && $end_date) {
+        // Set all previous trimesters to inactive
+        $conn->query("UPDATE current_semester SET is_active = 0");
+        // Insert new trimester as active
+        $stmt = $conn->prepare("INSERT INTO current_semester (trimester_name, start_date, end_date, is_active) VALUES (?, ?, ?, 1)");
+        $stmt->bind_param("sss", $trimester_name, $start_date, $end_date);
+        $stmt->execute();
+        $stmt->close();
+        header('Location: academic_config.php?success=trimester');
+        exit();
+    } else {
+        $trimester_error = 'All fields are required.';
+    }
+}
+
+// Fetch all trimesters
+$trimesters = [];
+$result = $conn->query("SELECT * FROM current_semester ORDER BY start_date DESC");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $trimesters[] = $row;
+    }
+}
+$current_trimester = getCurrentTrimester($conn);
 
 // Get current values
 $current_semester_start = defined('SEMESTER_START_DATE') ? SEMESTER_START_DATE : '2025-06-02';
@@ -214,7 +245,43 @@ $current_passing_percentage = defined('PASSING_PERCENTAGE') ? PASSING_PERCENTAGE
                             </div>
                         </div>
                     </div>
-                </div>                
+                </div>
+
+                <div class="config-card">
+                    <div class="card-header"><h2><span class="material-icons">event</span>Current Trimester</h2></div>
+                    <div class="config-form">
+                        <?php if (!empty($trimester_error)) echo '<div class="alert alert-danger">' . htmlspecialchars($trimester_error) . '</div>'; ?>
+                        <form method="POST" style="margin-bottom:24px;">
+                            <input type="hidden" name="set_trimester" value="1">
+                            <div class="form-group">
+                                <label for="trimester_name">Trimester Name</label>
+                                <input type="text" id="trimester_name" name="trimester_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="start_date">Start Date</label>
+                                <input type="date" id="start_date" name="start_date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="end_date">End Date</label>
+                                <input type="date" id="end_date" name="end_date" required>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Set as Current Trimester</button>
+                            </div>
+                        </form>
+                        <h3>Trimester History</h3>
+                        <ul style="list-style:none;padding:0;">
+                            <?php foreach ($trimesters as $t): ?>
+                                <li style="margin-bottom:8px;<?php if($t['is_active']) echo 'font-weight:bold;color:#00C1FE;'; ?>">
+                                    <?php echo htmlspecialchars($t['trimester_name']) . ' (' . htmlspecialchars($t['start_date']) . ' to ' . htmlspecialchars($t['end_date']) . ')'; ?>
+                                    <?php if($t['is_active']) echo ' <span class="status-badge active">Active</span>'; ?>
+                                </li>
+                            <?php endforeach; ?>
+                            <?php if (empty($trimesters)) echo '<li>No trimesters set yet.</li>'; ?>
+                        </ul>
+                        <?php if (!$current_trimester) echo '<div class="alert alert-warning">No active trimester is set.</div>'; ?>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
