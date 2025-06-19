@@ -6,15 +6,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_subject'])) {
     $subject_code = trim($_POST['subjectCode']);
     $subject_name = trim($_POST['subjectName']);
     $description = trim($_POST['description']);
+    $assessment_type = $_POST['assessment_type'] ?? 'coursework_final_exam';
     $lecturer_id = $_POST['lecturer'];
     $edu_level = $_POST['edu_level'] ?? 'Undergraduate';
+    $trimester_id = $_POST['trimester_id'] ?? null;
     $errors = [];
     if (!$subject_code || !$subject_name || !$description || !$lecturer_id) {
         $errors[] = 'All fields are required.';
     }
     if (empty($errors)) {
-        $stmt = $conn->prepare("INSERT INTO subjects (subject_code, subject_name, description, edu_level, lecturer_id) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssi", $subject_code, $subject_name, $description, $edu_level, $lecturer_id);
+        $stmt = $conn->prepare("INSERT INTO subjects (subject_code, subject_name, description, assessment_type, edu_level, lecturer_id, trimester_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssssii", $subject_code, $subject_name, $description, $assessment_type, $edu_level, $lecturer_id, $trimester_id);
         if ($stmt->execute()) {
             header('Location: subjects.php?success=1');
             exit();
@@ -31,15 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_subject'])) {
     $subject_code = trim($_POST['edit_subjectCode']);
     $subject_name = trim($_POST['edit_subjectName']);
     $description = trim($_POST['edit_description']);
+    $assessment_type = $_POST['edit_assessment_type'] ?? 'coursework_final_exam';
     $lecturer_id = $_POST['edit_lecturer'];
     $edu_level = $_POST['edit_edu_level'] ?? 'Undergraduate';
+    $edit_trimester_id = $_POST['edit_trimester_id'] ?? null;
     $errors = [];
     if (!$subject_code || !$subject_name || !$description || !$lecturer_id) {
         $errors[] = 'All fields are required.';
     }
     if (empty($errors)) {
-        $stmt = $conn->prepare("UPDATE subjects SET subject_code=?, subject_name=?, description=?, edu_level=?, lecturer_id=? WHERE subject_id=?");
-        $stmt->bind_param("ssssii", $subject_code, $subject_name, $description, $edu_level, $lecturer_id, $subject_id);
+        $stmt = $conn->prepare("UPDATE subjects SET subject_code=?, subject_name=?, description=?, assessment_type=?, edu_level=?, lecturer_id=?, trimester_id=? WHERE subject_id=?");
+        $stmt->bind_param("sssssiii", $subject_code, $subject_name, $description, $assessment_type, $edu_level, $lecturer_id, $edit_trimester_id, $subject_id);
         if ($stmt->execute()) {
             header('Location: subjects.php?success=2');
             exit();
@@ -73,14 +77,21 @@ if ($result_lect) {
     }
 }
 
+// Fetch all trimesters for dropdown
+$trimesters = [];
+$result_trim = $conn->query("SELECT id, trimester_name, start_date, end_date FROM current_semester ORDER BY start_date DESC");
+if ($result_trim) {
+    while ($row = $result_trim->fetch_assoc()) {
+        $trimesters[] = $row;
+    }
+}
+
 // At the top, get the filter value:
 $edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter'] : '';
 
 // Fetch all subjects from the database
 $subjects = [];
-$sql = "SELECT s.subject_id, s.subject_code, s.subject_name, s.description, s.edu_level, s.lecturer_id, l.name AS lecturer_name
-        FROM subjects s
-        LEFT JOIN lecturers l ON s.lecturer_id = l.lecturer_id";
+$sql = "SELECT s.subject_id, s.subject_code, s.subject_name, s.description, s.assessment_type, s.edu_level, s.lecturer_id, l.name AS lecturer_name, s.trimester_id, cs.trimester_name, cs.start_date, cs.end_date FROM subjects s LEFT JOIN lecturers l ON s.lecturer_id = l.lecturer_id LEFT JOIN current_semester cs ON s.trimester_id = cs.id";
 $where = [];
 $params = [];
 $types = '';
@@ -140,6 +151,7 @@ $stmt->close();
             </div>
         <?php elseif (isset($_GET['success'])): ?>
             <div class="alert alert-success">
+                <span class="material-icons">check_circle</span>
                 <?php
                 if ($_GET['success'] == 1) echo 'Subject added successfully!';
                 elseif ($_GET['success'] == 2) echo 'Subject updated successfully!';
@@ -172,8 +184,10 @@ $stmt->close();
                         <th>Subject Code</th>
                         <th>Subject Name</th>
                         <th>Description</th>
+                        <th>Assessment Type</th>
                         <th>Education Level</th>
                         <th>Lecturer</th>
+                        <th>Trimester</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -184,8 +198,14 @@ $stmt->close();
                             <td><?php echo htmlspecialchars($subject['subject_code']); ?></td>
                             <td><?php echo htmlspecialchars($subject['subject_name']); ?></td>
                             <td><?php echo htmlspecialchars($subject['description']); ?></td>
+                            <td>
+                                <span class="assessment-type-badge <?php echo $subject['assessment_type'] === 'coursework_only' ? 'coursework-only' : 'coursework-exam'; ?>">
+                                    <?php echo $subject['assessment_type'] === 'coursework_only' ? 'Coursework Only' : 'Coursework + Final Exam'; ?>
+                                </span>
+                            </td>
                             <td><?php echo htmlspecialchars($subject['edu_level'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($subject['lecturer_name']); ?></td>
+                            <td><?php echo htmlspecialchars($subject['trimester_name'] ?? '-'); ?></td>
                             <td>
                                 <span class='material-icons edit-btn'
                                     data-subject='<?php echo htmlspecialchars(json_encode([
@@ -193,8 +213,10 @@ $stmt->close();
                                         'subject_code' => $subject['subject_code'],
                                         'subject_name' => $subject['subject_name'],
                                         'description' => $subject['description'],
+                                        'assessment_type' => $subject['assessment_type'],
                                         'edu_level' => $subject['edu_level'],
-                                        'lecturer_id' => $subject['lecturer_id']
+                                        'lecturer_id' => $subject['lecturer_id'],
+                                        'trimester_id' => $subject['trimester_id']
                                     ]), ENT_QUOTES, 'UTF-8'); ?>'
                                     onclick='openEditSubjectModal(this)'>edit</span>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this subject?');">
@@ -206,7 +228,7 @@ $stmt->close();
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="5" style="text-align:center; color:#888;">No subjects found.</td></tr>
+                    <tr><td colspan="8" style="text-align:center; color:#888;">No subjects found.</td></tr>
                 <?php endif; ?>
                 </tbody>
             </table>
@@ -233,6 +255,17 @@ $stmt->close();
                         <textarea id="description" name="description" rows="3" required></textarea>
                     </div>
                     <div class="form-group">
+                        <label for="assessment_type">Assessment Type</label>
+                        <select id="assessment_type" name="assessment_type" required>
+                            <option value="coursework_final_exam">Coursework + Final Exam</option>
+                            <option value="coursework_only">Coursework Only</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            <strong>Coursework + Final Exam:</strong> Students must pass both coursework (≥50% of weighted marks) and final exam (≥50% of weighted marks)<br>
+                            <strong>Coursework Only:</strong> Students must pass coursework only (≥50% of total weighted marks, coursework totals 100%)
+                        </small>
+                    </div>
+                    <div class="form-group">
                         <label for="edu_level">Education Level</label>
                         <select id="edu_level" name="edu_level" required>
                             <option value="Foundation">Foundation</option>
@@ -247,6 +280,15 @@ $stmt->close();
                             <option value="">Select Lecturer</option>
                             <?php foreach ($lecturers as $lect): ?>
                                 <option value="<?php echo $lect['lecturer_id']; ?>"><?php echo htmlspecialchars($lect['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="trimester_id">Trimester</label>
+                        <select id="trimester_id" name="trimester_id" required>
+                            <option value="">Select Trimester</option>
+                            <?php foreach ($trimesters as $trim): ?>
+                                <option value="<?php echo $trim['id']; ?>"><?php echo htmlspecialchars($trim['trimester_name']) . ' (' . date('M j, Y', strtotime($trim['start_date'])) . ' - ' . date('M j, Y', strtotime($trim['end_date'])) . ')'; ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -280,6 +322,17 @@ $stmt->close();
                         <textarea id="edit_description" name="edit_description" rows="3" required></textarea>
                     </div>
                     <div class="form-group">
+                        <label for="edit_assessment_type">Assessment Type</label>
+                        <select id="edit_assessment_type" name="edit_assessment_type" required>
+                            <option value="coursework_final_exam">Coursework + Final Exam</option>
+                            <option value="coursework_only">Coursework Only</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            <strong>Coursework + Final Exam:</strong> Students must pass both coursework (≥50% of weighted marks) and final exam (≥50% of weighted marks)<br>
+                            <strong>Coursework Only:</strong> Students must pass coursework only (≥50% of total weighted marks, coursework totals 100%)
+                        </small>
+                    </div>
+                    <div class="form-group">
                         <label for="edit_edu_level">Education Level</label>
                         <select id="edit_edu_level" name="edit_edu_level" required>
                             <option value="Foundation">Foundation</option>
@@ -294,6 +347,15 @@ $stmt->close();
                             <option value="">Select Lecturer</option>
                             <?php foreach ($lecturers as $lect): ?>
                                 <option value="<?php echo $lect['lecturer_id']; ?>"><?php echo htmlspecialchars($lect['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_trimester_id">Trimester</label>
+                        <select id="edit_trimester_id" name="edit_trimester_id" required>
+                            <option value="">Select Trimester</option>
+                            <?php foreach ($trimesters as $trim): ?>
+                                <option value="<?php echo $trim['id']; ?>"><?php echo htmlspecialchars($trim['trimester_name']) . ' (' . date('M j, Y', strtotime($trim['start_date'])) . ' - ' . date('M j, Y', strtotime($trim['end_date'])) . ')'; ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -319,8 +381,10 @@ $stmt->close();
         document.getElementById('edit_subjectCode').value = subject.subject_code;
         document.getElementById('edit_subjectName').value = subject.subject_name;
         document.getElementById('edit_description').value = subject.description;
+        document.getElementById('edit_assessment_type').value = subject.assessment_type || 'coursework_final_exam';
         document.getElementById('edit_edu_level').value = subject.edu_level || 'Undergraduate';
         document.getElementById('edit_lecturer').value = subject.lecturer_id;
+        document.getElementById('edit_trimester_id').value = subject.trimester_id || '';
         document.getElementById('editSubjectModal').style.display = 'block';
     }
     function closeEditSubjectModal() {

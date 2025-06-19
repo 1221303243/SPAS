@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../auth/index.php");
+    header("Location: ../../auth/login.php");
     exit();
 }
 
@@ -12,6 +12,7 @@ if ($_SESSION['role'] !== 'lecturer') {
 }
 
 require_once '../../auth/db_connection.php';
+require_once '../../config/academic_config.php';
 
 // Get the lecturer's user_id from session
 $user_id = $_SESSION['user_id'];
@@ -25,9 +26,11 @@ $lecturer = $result->fetch_assoc();
 $lecturer_id = $lecturer ? $lecturer['lecturer_id'] : null;
 $stmt->close();
 
+$current_trimester = getCurrentTrimester($conn);
+
 // Fetch assessment configurations for this lecturer's subjects
 $assessments = array();
-if ($lecturer_id && isset($_SESSION['edu_level'])) {
+if ($lecturer_id && isset($_SESSION['edu_level']) && $current_trimester) {
     $edu_level = $_SESSION['edu_level'];
     $sql = "SELECT DISTINCT
                 a.assessment_id,
@@ -40,10 +43,12 @@ if ($lecturer_id && isset($_SESSION['edu_level'])) {
             FROM assessment_plans a
             JOIN subjects s ON a.subject_id = s.subject_id
             JOIN classes c ON c.subject_id = s.subject_id
-            WHERE c.lecturer_id = ? AND c.edu_level = ?
+            WHERE c.lecturer_id = ?
+              AND c.edu_level = ?
+              AND s.trimester_id = ?
             ORDER BY s.subject_name, a.assessment_type";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("is", $lecturer_id, $edu_level);
+    $stmt->bind_param("isi", $lecturer_id, $edu_level, $current_trimester['id']);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -112,9 +117,9 @@ if ($lecturer_id && isset($_SESSION['edu_level'])) {
                                 data-due="<?php 
                                     $due_date = '';
                                     $event_id = '';
-                                    $event_text = "Assessment Due: {$assessment['assessment_type']} for {$assessment['subject_name']}";
-                                    $due_stmt = $conn->prepare("SELECT event_date, event_id FROM calendar_events WHERE event_text = ? LIMIT 1");
-                                    $due_stmt->bind_param("s", $event_text);
+                                    $due_stmt = $conn->prepare("SELECT event_date, event_id FROM calendar_events WHERE subject_id = ? AND event_text LIKE ? LIMIT 1");
+                                    $event_text_like = "%{$assessment['assessment_type']}%";
+                                    $due_stmt->bind_param("is", $assessment['subject_id'], $event_text_like);
                                     $due_stmt->execute();
                                     $due_result = $due_stmt->get_result();
                                     if ($due_row = $due_result->fetch_assoc()) {
@@ -197,7 +202,9 @@ if ($lecturer_id && isset($_SESSION['edu_level'])) {
         })
         .then(res => res.json())
         .then(data => {
-          if (data.success) {
+          if (data.success && data.redirect) {
+            window.location.href = data.redirect;
+          } else if (data.success) {
             location.reload();
           } else {
             alert(data.message || 'Failed to update assessment.');
@@ -207,6 +214,10 @@ if ($lecturer_id && isset($_SESSION['edu_level'])) {
       });
     });
     </script>
+
+    <?php if (isset($_GET['edit_success'])): ?>
+        <div class="alert alert-success">Assessment updated successfully!</div>
+    <?php endif; ?>
 
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

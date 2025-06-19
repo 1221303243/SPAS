@@ -189,6 +189,26 @@ body {
     color: #6c757d;
 }
 
+.assessment-type-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    display: inline-block;
+    letter-spacing: 0.5px;
+}
+.assessment-type-badge.coursework-exam {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+}
+.assessment-type-badge.coursework-only {
+    background: #f3e5f5;
+    color: #7b1fa2;
+    border: 1px solid #e1bee7;
+}
+
 .edit-btn, .delete-btn, .more-btn {
     cursor: pointer;
     font-size: 20px;
@@ -551,4 +571,59 @@ body {
     #addSubjectModal .modal-header, #addSubjectModal .modal-body, #addSubjectModal .modal-form {
         padding: 16px 10px;
     }
+}
+
+/* Modal improvements for Edit Subject */
+#editSubjectModal .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+#editSubjectModal .modal-form {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding-bottom: 80px; /* space for sticky actions */
+}
+#editSubjectModal .form-actions {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    background: #fff;
+    padding: 16px 0 0 0;
+    z-index: 2;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid #e9ecef;
+}
+@media (max-width: 600px) {
+    #editSubjectModal .modal-content {
+        max-width: 98vw;
+        padding: 0;
+    }
+    #editSubjectModal .modal-header, #editSubjectModal .modal-body, #editSubjectModal .modal-form {
+        padding: 16px 10px;
+    }
+}
+
+.alert-success {
+    background-color: #e6f9ed;
+    border: 1.5px solid #b7e4c7;
+    color: #218838;
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 1.08rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.08);
+}
+.alert-success .material-icons {
+    color: #28a745;
+    font-size: 1.4rem;
+    margin-right: 6px;
 } 

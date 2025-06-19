@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'lecturer') {
-    header('Location: ../../auth/index.php');
+    header('Location: ../../auth/login.php');
     exit();
 }
 
@@ -104,34 +104,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $coursework_count = $result['coursework_count'] ?? 0;
             $final_exam_count = $result['final_exam_count'] ?? 0;
 
-            // Calculate the letter grade based on MMU rules with +/- modifiers
+            // Get subject assessment type
+            $stmt = $conn->prepare('SELECT assessment_type FROM subjects WHERE subject_id = ?');
+            $stmt->bind_param('i', $assessment['subject_id']);
+            $stmt->execute();
+            $subject_result = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            
+            $subject_assessment_type = $subject_result['assessment_type'] ?? 'coursework_final_exam';
+
+            // Calculate grade based on subject type
             $grade = '';
-            if ($coursework_total >= 50 && $final_exam_total >= 50) {
-                if ($total_marks >= 90) {
-                    $grade = 'A+';
-                } elseif ($total_marks >= 85) {
-                    $grade = 'A';
-                } elseif ($total_marks >= 80) {
-                    $grade = 'A-';
-                } elseif ($total_marks >= 75) {
-                    $grade = 'B+';
-                } elseif ($total_marks >= 70) {
-                    $grade = 'B';
-                } elseif ($total_marks >= 65) {
-                    $grade = 'B-';
-                } elseif ($total_marks >= 60) {
-                    $grade = 'C+';
-                } elseif ($total_marks >= 55) {
-                    $grade = 'C';
-                } elseif ($total_marks >= 50) {
-                    $grade = 'C-';
-                } elseif ($total_marks >= 45) {
-                    $grade = 'D';
-                } else {
-                    $grade = 'F';
-                }
+            if ($subject_assessment_type === 'coursework_only') {
+                // For coursework-only subjects, only check total coursework marks
+                $coursework_pass = ($coursework_total >= 50); // 50% of total coursework weightage
+                $grade = $coursework_pass ? 'P' : 'F';
             } else {
-                $grade = 'F'; // Fail if either component is below 50%
+                // For coursework + final exam subjects, check both categories
+                $coursework_weight = 0;
+                $final_exam_weight = 0;
+                
+                // Get total weightages for each category
+                $weight_stmt = $conn->prepare('
+                    SELECT 
+                        SUM(CASE WHEN category = "coursework" THEN weightage ELSE 0 END) as coursework_weight,
+                        SUM(CASE WHEN category = "final_exam" THEN weightage ELSE 0 END) as final_exam_weight
+                    FROM assessment_plans 
+                    WHERE subject_id = ?
+                ');
+                $weight_stmt->bind_param('i', $assessment['subject_id']);
+                $weight_stmt->execute();
+                $weight_result = $weight_stmt->get_result()->fetch_assoc();
+                $weight_stmt->close();
+                
+                $coursework_weight = $weight_result['coursework_weight'] ?? 0;
+                $final_exam_weight = $weight_result['final_exam_weight'] ?? 0;
+                
+                $coursework_pass = ($coursework_weight > 0) ? ($coursework_total >= ($coursework_weight / 2)) : true;
+                $final_exam_pass = ($final_exam_weight > 0) ? ($final_exam_total >= ($final_exam_weight / 2)) : true;
+                $grade = ($coursework_pass && $final_exam_pass) ? 'P' : 'F';
             }
 
             // Update the grade and totals

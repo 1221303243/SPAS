@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
         echo json_encode(['success' => false, 'message' => 'Not authenticated']);
         exit;
     } else {
-        header('Location: ../../auth/index.php');
+        header('Location: ../../auth/login.php');
         exit();
     }
 }
@@ -41,6 +41,7 @@ if ($_SESSION['role'] !== 'student') {
                     <?php
                     // Include database connection
                     require_once '../../auth/db_connection.php';
+                    require_once '../../config/academic_config.php';
 
                     // Get current month and year
                     $month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('m');
@@ -56,22 +57,27 @@ if ($_SESSION['role'] !== 'student') {
                     $stmt->fetch();
                     $stmt->close();
 
+                    // Get current active trimester
+                    $current_trimester = getCurrentTrimester($conn);
+
                     // Get subject_ids the student is enrolled in
                     $subject_ids = [];
-                    $stmt = $conn->prepare("
-                        SELECT DISTINCT s.subject_id
-                        FROM student_classes sc
-                        JOIN classes c ON sc.class_id = c.class_id
-                        JOIN subjects s ON c.subject_id = s.subject_id
-                        WHERE sc.student_id = ?
-                    ");
-                    $stmt->bind_param("i", $student_id);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    while ($row = $result->fetch_assoc()) {
-                        $subject_ids[] = $row['subject_id'];
+                    if ($current_trimester) {
+                        $stmt = $conn->prepare("
+                            SELECT DISTINCT s.subject_id
+                            FROM student_classes sc
+                            JOIN classes c ON sc.class_id = c.class_id
+                            JOIN subjects s ON c.subject_id = s.subject_id
+                            WHERE sc.student_id = ? AND s.trimester_id = ?
+                        ");
+                        $stmt->bind_param("ii", $student_id, $current_trimester['id']);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        while ($row = $result->fetch_assoc()) {
+                            $subject_ids[] = $row['subject_id'];
+                        }
+                        $stmt->close();
                     }
-                    $stmt->close();
 
                     // Create calendar header
                     $monthName = date('F', mktime(0, 0, 0, $month, 1, $year));

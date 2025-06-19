@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../auth/index.php");
+    header("Location: ../../auth/login.php");
     exit();
 }
 
@@ -12,6 +12,7 @@ if ($_SESSION['role'] !== 'lecturer') {
 }
 
 require_once '../../auth/db_connection.php';
+require_once '../../config/academic_config.php';
 
 $user_id = $_SESSION['user_id'];
 $lecturer_id = null;
@@ -22,12 +23,17 @@ $stmt->bind_result($lecturer_id);
 $stmt->fetch();
 $stmt->close();
 
+$current_trimester = getCurrentTrimester($conn);
+
 // Fetch classes taught by this lecturer
-if (isset($_SESSION['edu_level'])) {
+if (isset($_SESSION['edu_level']) && $current_trimester) {
     $edu_level = $_SESSION['edu_level'];
-    $class_sql = "SELECT c.class_id, c.class_name, s.subject_name, c.edu_level FROM classes c JOIN subjects s ON c.subject_id = s.subject_id WHERE c.lecturer_id = ? AND c.edu_level = ?";
+    $class_sql = "SELECT c.class_id, c.class_name, s.subject_name, c.edu_level
+                 FROM classes c
+                 JOIN subjects s ON c.subject_id = s.subject_id
+                 WHERE c.lecturer_id = ? AND c.edu_level = ? AND s.trimester_id = ?";
     $stmt = $conn->prepare($class_sql);
-    $stmt->bind_param('is', $lecturer_id, $edu_level);
+    $stmt->bind_param('isi', $lecturer_id, $edu_level, $current_trimester['id']);
     $stmt->execute();
     $class_result = $stmt->get_result();
     $classes = $class_result->fetch_all(MYSQLI_ASSOC);

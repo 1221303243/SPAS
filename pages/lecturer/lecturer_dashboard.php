@@ -5,7 +5,7 @@ ini_set('display_errors', 1);
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../auth/index.php");
+    header("Location: ../../auth/login.php");
     exit();
 }
 
@@ -16,6 +16,7 @@ if ($_SESSION['role'] !== 'lecturer') {
 
 // Include database connection
 require_once '../../auth/db_connection.php';
+require_once '../../config/academic_config.php';
 
 // Get the lecturer's user_id from session
 $user_id = $_SESSION['user_id'];
@@ -29,19 +30,28 @@ $lecturer = $result->fetch_assoc();
 $lecturer_id = $lecturer ? $lecturer['lecturer_id'] : null;
 $stmt->close();
 
+$current_trimester = getCurrentTrimester($conn);
+
 $subjects = array();
-if ($lecturer_id && isset($_SESSION['edu_level'])) {
+if ($lecturer_id && isset($_SESSION['edu_level']) && $current_trimester) {
     $edu_level = $_SESSION['edu_level'];
-    // Fetch subject name, code, and class for classes taught by this lecturer and matching the selected education level
-    $sql = "SELECT DISTINCT c.class_id, s.subject_name, s.subject_code, c.class_name, c.edu_level FROM classes c JOIN subjects s ON c.subject_id = s.subject_id WHERE c.lecturer_id = ? AND c.edu_level = ?";
+    $sql = "SELECT DISTINCT c.class_id, s.subject_name, s.subject_code, c.class_name, c.edu_level
+            FROM classes c
+            JOIN subjects s ON c.subject_id = s.subject_id
+            WHERE c.lecturer_id = ?
+              AND c.edu_level = ?
+              AND s.trimester_id = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("is", $lecturer_id, $edu_level);
+    $stmt->bind_param("isi", $lecturer_id, $edu_level, $current_trimester['id']);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $subjects[] = $row;
     }
     $stmt->close();
+} else if ($lecturer_id && isset($_SESSION['edu_level'])) {
+    // If no active trimester, show nothing or all (here: nothing)
+    $subjects = [];
 }
 ?>
 

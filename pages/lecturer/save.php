@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../auth/index.php");
+    header("Location: ../../auth/login.php");
     exit();
 }
 
@@ -20,7 +20,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $weightages = $_POST['weightage'];
     $due_dates = $_POST['due_date'];
     
-    // Validate total weightage and category weightages
+    // Get subject details including assessment_type
+    $stmt = $conn->prepare("SELECT subject_id, assessment_type FROM subjects WHERE subject_name = ?");
+    $stmt->bind_param("s", $subject_name);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $subject = $result->fetch_assoc();
+    $stmt->close();
+    
+    if (!$subject) {
+        $_SESSION['error'] = "Invalid subject selected";
+        header("Location: plan.php");
+        exit();
+    }
+    
+    $subject_id = $subject['subject_id'];
+    $subject_assessment_type = $subject['assessment_type'];
+    
+    // Validate total weightage and category weightages based on subject type
     $total_weightage = 0;
     $category_weightages = ['coursework' => 0, 'final_exam' => 0];
     
@@ -35,27 +52,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
     
-    if ($category_weightages['coursework'] > 100 || $category_weightages['final_exam'] > 100) {
-        $_SESSION['error'] = "Each category's weightage cannot exceed 100%";
-        header("Location: plan.php");
-        exit();
+    // Validate based on subject type
+    if ($subject_assessment_type === 'coursework_only') {
+        // For coursework-only subjects, ensure no final exam assessments
+        if ($category_weightages['final_exam'] > 0) {
+            $_SESSION['error'] = "Coursework-only subjects cannot have final exam assessments";
+            header("Location: plan.php");
+            exit();
+        }
+        // Coursework should total 100%
+        if ($category_weightages['coursework'] !== 100) {
+            $_SESSION['error'] = "Coursework-only subjects must have 100% coursework weightage";
+            header("Location: plan.php");
+            exit();
+        }
+    } else {
+        // For coursework + final exam subjects, validate category limits
+        if ($category_weightages['coursework'] > 100 || $category_weightages['final_exam'] > 100) {
+            $_SESSION['error'] = "Each category's weightage cannot exceed 100%";
+            header("Location: plan.php");
+            exit();
+        }
     }
-    
-    // Get subject_id from subject name
-    $stmt = $conn->prepare("SELECT subject_id FROM subjects WHERE subject_name = ?");
-    $stmt->bind_param("s", $subject_name);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $subject = $result->fetch_assoc();
-    $stmt->close();
-    
-    if (!$subject) {
-        $_SESSION['error'] = "Invalid subject selected";
-        header("Location: plan.php");
-        exit();
-    }
-    
-    $subject_id = $subject['subject_id'];
     
     // Start transaction
     $conn->begin_transaction();
@@ -87,14 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Commit transaction
         $conn->commit();
         
-        $_SESSION['success'] = "Assessment plan saved successfully!";
-        header("Location: assessment.php");
+        $_SESSION['success'] = "Assessment configuration saved successfully!";
+        header("Location: plan.php");
         exit();
         
     } catch (Exception $e) {
         // Rollback transaction on error
         $conn->rollback();
-        $_SESSION['error'] = "Error saving assessment plan: " . $e->getMessage();
+        $_SESSION['error'] = "Failed to save assessment configuration: " . $e->getMessage();
         header("Location: plan.php");
         exit();
     }

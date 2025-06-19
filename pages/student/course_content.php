@@ -6,7 +6,7 @@ require_once '../../auth/db_connection.php';
 require_once '../../config/academic_config.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../auth/index.php");
+    header("Location: ../../auth/login.php");
     exit();
 }
 
@@ -112,6 +112,14 @@ if ($subject_id) {
     $stmt->close();
 }
 
+// Get subject assessment type (move this up so it's available for the header)
+$stmt = $conn->prepare("SELECT assessment_type FROM subjects WHERE subject_id = ?");
+$stmt->bind_param("i", $subject_id);
+$stmt->execute();
+$subject_result = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+$subject_assessment_type = $subject_result['assessment_type'] ?? 'coursework_final_exam';
+
 ?>
 
 <!DOCTYPE html>
@@ -122,6 +130,102 @@ if ($subject_id) {
     <link rel="stylesheet" href="../../css/course_content.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        font-weight: 600;
+        border-radius: 16px;
+        padding: 0.25em 0.75em;
+        font-size: 1em;
+        margin-right: 0.5em;
+        transition: background 0.2s;
+    }
+    .status-pass {
+        background: #28a745;
+        color: #fff;
+    }
+    .status-fail {
+        background: #dc3545;
+        color: #fff;
+    }
+    .status-desc {
+        color: #6c757d;
+        font-size: 0.98em;
+    }
+    .pass-status {
+        margin: 0.5em 0 0 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+    }
+    /* Grade badge color classes */
+    .grade-badge {
+        border-radius: 16px;
+        padding: 0.25em 0.9em;
+        font-weight: 600;
+        font-size: 1.1em;
+        letter-spacing: 0.03em;
+        margin-left: 0.5em;
+        display: inline-block;
+    }
+    .grade-success {
+        background: #28a745;
+        color: #fff;
+    }
+    .grade-warning {
+        background: #ffc107;
+        color: #212529;
+    }
+    .grade-danger {
+        background: #dc3545;
+        color: #fff;
+    }
+    .grade-secondary {
+        background: #6c757d;
+        color: #fff;
+    }
+    /* Overall Result Card Styling */
+    .overall-result-card {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 2px 12px rgba(0, 193, 254, 0.08), 0 1.5px 6px rgba(31, 18, 53, 0.06);
+        padding: 2.2em 2em 1.5em 2em;
+        margin: 2em auto 2em auto;
+        max-width: 480px;
+        text-align: center;
+        border: 1px solid #e3e6ea;
+    }
+    .overall-title {
+        font-size: 1.35em;
+        font-weight: 700;
+        margin-bottom: 0.7em;
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        justify-content: center;
+    }
+    .result-summary.centered {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.1em;
+    }
+    .overall-percentage {
+        font-size: 2.3em;
+        font-weight: 800;
+        color: #1F1235;
+        margin-bottom: 0.2em;
+        letter-spacing: 0.01em;
+    }
+    .grade-row {
+        display: flex;
+        align-items: center;
+        gap: 1.1em;
+        margin-top: 0.5em;
+        justify-content: center;
+    }
+    </style>
     <script type="text/javascript">
         var semesterStartDate = new Date('<?php echo $current_trimester ? $current_trimester['start_date'] : SEMESTER_START_DATE; ?>');
         var semesterEndDate = new Date('<?php echo $current_trimester ? $current_trimester['end_date'] : $semester_end->format('Y-m-d'); ?>');
@@ -217,7 +321,13 @@ if ($subject_id) {
 
     <div class="content-container">
         <div class="course-header">
-            <h1><?php echo $subjectName . ' (' . htmlspecialchars($subjectCode) . ')'; ?></h1>
+            <?php
+            // Subject type label for header
+            $type_label = ($subject_assessment_type === 'coursework_only') ? 'Coursework Only' : 'Coursework + Final Exam';
+            ?>
+            <h1>
+                <?php echo $subjectName . ' (' . htmlspecialchars($subjectCode) . ' - ' . $type_label . ')'; ?>
+            </h1>
         </div>
 
         <div class="graph-container">
@@ -273,6 +383,14 @@ if ($subject_id) {
                 }
                 $stmt->close();
 
+                // Calculate total weightages for dynamic pass mark
+                $coursework_weight = 0;
+                foreach ($coursework_assessments as $a) $coursework_weight += $a['weightage'];
+                $final_exam_weight = 0;
+                foreach ($final_exam_assessments as $a) $final_exam_weight += $a['weightage'];
+                $coursework_pass_mark = $coursework_weight / 2;
+                $final_exam_pass_mark = $final_exam_weight / 2;
+
                 // Display Coursework Assessments
                 if (!empty($coursework_assessments)) {
                     echo '<div class="assessment-category">';
@@ -308,29 +426,39 @@ if ($subject_id) {
                         if ($assessment['weighted_marks'] !== null) {
                             echo '<span class="value weighted">' . number_format($assessment['weighted_marks'], 1) . '%</span>';
                         } else {
-                            echo '<span class="value not-taken">Not Taken Yet</span>';
+                            echo '<span class="value not-taken">Not Available</span>';
                         }
                         echo '</div>';
-                        
-                        if ($assessment['date_recorded']) {
-                            echo '<div class="detail-row">';
-                            echo '<span class="label">Graded On:</span>';
-                            echo '<span class="value">' . date('M d, Y', strtotime($assessment['date_recorded'])) . '</span>';
-                            echo '</div>';
-                        }
                         echo '</div>';
                         echo '</div>';
                     }
                     
                     echo '</div>';
-                    echo '<div class="category-total">';
-                    echo '<strong>Coursework Total: ' . number_format($overall_coursework_total, 1) . '%</strong>';
+                    echo '<div class="category-summary">';
+                    echo '<h4>Coursework Total: ' . number_format($overall_coursework_total, 1) . '%</h4>';
+                    if ($subject_assessment_type === 'coursework_only') {
+                        $pass = $overall_coursework_total >= $coursework_pass_mark;
+                        echo '<p class="pass-status ' . ($pass ? 'pass' : 'fail') . '">';
+                        echo '<span class="status-badge ' . ($pass ? 'status-pass' : 'status-fail') . '">';
+                        echo $pass ? '<i class="bi bi-check-circle-fill"></i> PASS' : '<i class="bi bi-x-circle-fill"></i> FAIL';
+                        echo '</span> ';
+                        echo '<span class="status-desc">(Requires ≥<strong>' . number_format($coursework_pass_mark, 1) . '%</strong> of total coursework marks)</span>';
+                        echo '</p>';
+                    } else {
+                        $pass = $overall_coursework_total >= $coursework_pass_mark;
+                        echo '<p class="pass-status ' . ($pass ? 'pass' : 'fail') . '">';
+                        echo '<span class="status-badge ' . ($pass ? 'status-pass' : 'status-fail') . '">';
+                        echo $pass ? '<i class="bi bi-check-circle-fill"></i> PASS' : '<i class="bi bi-x-circle-fill"></i> FAIL';
+                        echo '</span> ';
+                        echo '<span class="status-desc">(Requires ≥<strong>' . number_format($coursework_pass_mark, 1) . '%</strong> of coursework weightage)</span>';
+                        echo '</p>';
+                    }
                     echo '</div>';
                     echo '</div>';
                 }
 
-                // Display Final Exam Assessments
-                if (!empty($final_exam_assessments)) {
+                // Display Final Exam Assessments (only for coursework + final exam subjects)
+                if (!empty($final_exam_assessments) && $subject_assessment_type !== 'coursework_only') {
                     echo '<div class="assessment-category">';
                     echo '<h3><i class="bi bi-file-earmark-text"></i> Final Exam</h3>';
                     echo '<div class="assessment-grid">';
@@ -364,43 +492,88 @@ if ($subject_id) {
                         if ($assessment['weighted_marks'] !== null) {
                             echo '<span class="value weighted">' . number_format($assessment['weighted_marks'], 1) . '%</span>';
                         } else {
-                            echo '<span class="value not-taken">Not Taken Yet</span>';
+                            echo '<span class="value not-taken">Not Available</span>';
                         }
                         echo '</div>';
-                        
-                        if ($assessment['date_recorded']) {
-                            echo '<div class="detail-row">';
-                            echo '<span class="label">Graded On:</span>';
-                            echo '<span class="value">' . date('M d, Y', strtotime($assessment['date_recorded'])) . '</span>';
-                            echo '</div>';
-                        }
                         echo '</div>';
                         echo '</div>';
                     }
                     
                     echo '</div>';
-                    echo '<div class="category-total">';
-                    echo '<strong>Final Exam Total: ' . number_format($overall_final_exam_total, 1) . '%</strong>';
+                    echo '<div class="category-summary">';
+                    echo '<h4>Final Exam Total: ' . number_format($overall_final_exam_total, 1) . '%</h4>';
+                    $pass = $overall_final_exam_total >= $final_exam_pass_mark;
+                    echo '<p class="pass-status ' . ($pass ? 'pass' : 'fail') . '">';
+                    echo '<span class="status-badge ' . ($pass ? 'status-pass' : 'status-fail') . '">';
+                    echo $pass ? '<i class="bi bi-check-circle-fill"></i> PASS' : '<i class="bi bi-x-circle-fill"></i> FAIL';
+                    echo '</span> ';
+                    echo '<span class="status-desc">(Requires ≥<strong>' . number_format($final_exam_pass_mark, 1) . '%</strong> of final exam weightage)</span>';
+                    echo '</p>';
                     echo '</div>';
                     echo '</div>';
                 }
 
-                // Overall Total
+                // Overall Result
                 $overall_total = $overall_coursework_total + $overall_final_exam_total;
-                echo '<div class="overall-total">';
-                echo '<h3><i class="bi bi-trophy"></i> Overall Performance</h3>';
-                echo '<div class="total-display">';
-                echo '<div class="total-item">';
-                echo '<span class="total-label">Coursework:</span>';
-                echo '<span class="total-value">' . number_format($overall_coursework_total, 1) . '%</span>';
-                echo '</div>';
-                echo '<div class="total-item">';
-                echo '<span class="total-label">Final Exam:</span>';
-                echo '<span class="total-value">' . number_format($overall_final_exam_total, 1) . '%</span>';
-                echo '</div>';
-                echo '<div class="total-item final">';
-                echo '<span class="total-label">Total Grade:</span>';
-                echo '<span class="total-value">' . number_format($overall_total, 1) . '%</span>';
+                // Calculate final grade (same as student_detail.php)
+                function calculateOverallGrade($overallPercentage, $overallStatus) {
+                    if ($overallStatus === 'FAIL') {
+                        return 'F';
+                    }
+                    if ($overallPercentage >= 95) {
+                        return 'A+';
+                    } elseif ($overallPercentage >= 90) {
+                        return 'A';
+                    } elseif ($overallPercentage >= 85) {
+                        return 'A-';
+                    } elseif ($overallPercentage >= 80) {
+                        return 'B+';
+                    } elseif ($overallPercentage >= 75) {
+                        return 'B';
+                    } elseif ($overallPercentage >= 70) {
+                        return 'B-';
+                    } elseif ($overallPercentage >= 65) {
+                        return 'C+';
+                    } elseif ($overallPercentage >= 60) {
+                        return 'C';
+                    } elseif ($overallPercentage >= 55) {
+                        return 'C-';
+                    } elseif ($overallPercentage >= 50) {
+                        return 'D';
+                    } else {
+                        return 'F';
+                    }
+                }
+                // Determine pass/fail for grade calculation
+                if ($subject_assessment_type === 'coursework_only') {
+                    $overall_pass = $overall_coursework_total >= $coursework_pass_mark;
+                } else {
+                    $coursework_pass = $overall_coursework_total >= $coursework_pass_mark;
+                    $final_exam_pass = $overall_final_exam_total >= $final_exam_pass_mark;
+                    $overall_pass = $coursework_pass && $final_exam_pass;
+                }
+                $final_grade = calculateOverallGrade($overall_total, $overall_pass ? 'PASS' : 'FAIL');
+                // Grade color class (same as student_detail.php)
+                function getGradeColorClass($grade) {
+                    if (in_array($grade, ['A+', 'A', 'A-'])) {
+                        return 'grade-success'; // Green
+                    } elseif (in_array($grade, ['B+', 'B', 'B-', 'C+', 'C', 'C-', 'D'])) {
+                        return 'grade-warning'; // Yellow/Orange
+                    } elseif (in_array($grade, ['E', 'F'])) {
+                        return 'grade-danger'; // Red
+                    }
+                    return 'grade-secondary'; // Default/gray
+                }
+                $grade_color_class = getGradeColorClass($final_grade);
+                echo '<div class="overall-result-card">';
+                echo '<h3 class="overall-title"><i class="bi bi-trophy"></i> Overall Result</h3>';
+                echo '<div class="result-summary centered">';
+                echo '<div class="overall-percentage">' . number_format($overall_total, 1) . '%</div>';
+                echo '<div class="grade-row">';
+                echo '<span class="status-badge ' . ($overall_pass ? 'status-pass' : 'status-fail') . '">';
+                echo $overall_pass ? '<i class="bi bi-check-circle-fill"></i> PASS' : '<i class="bi bi-x-circle-fill"></i> FAIL';
+                echo '</span>';
+                echo '<span class="grade-badge ' . $grade_color_class . '">Grade: ' . $final_grade . '</span>';
                 echo '</div>';
                 echo '</div>';
                 echo '</div>';

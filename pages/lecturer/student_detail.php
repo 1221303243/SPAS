@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'lecturer') {
-    header("Location: ../../auth/index.php");
+    header("Location: ../../auth/login.php");
     exit();
 }
 
@@ -25,7 +25,8 @@ $sql = "
         s.name,
         c.class_name,
         sub.subject_code,
-        sub.subject_name
+        sub.subject_name,
+        sub.subject_id
     FROM students s
     JOIN student_classes sc ON s.student_id = sc.student_id
     JOIN classes c ON sc.class_id = c.class_id
@@ -106,14 +107,35 @@ $coursework_percentage = $coursework_total; // sum of weighted marks for coursew
 $final_exam_percentage = $final_exam_total; // sum of weighted marks for final exam
 $overall_percentage = $coursework_percentage + $final_exam_percentage; // sum, not average
 
-// Calculate dynamic pass marks
-$coursework_pass_mark = $coursework_weight / 2;
-$final_exam_pass_mark = $final_exam_weight / 2;
+// Get subject assessment type
+$stmt = $conn->prepare("SELECT assessment_type FROM subjects WHERE subject_id = ?");
+$stmt->bind_param("i", $student['subject_id']);
+$stmt->execute();
+$subject_result = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
-// Determine pass/fail status
-$coursework_status = $coursework_percentage >= $coursework_pass_mark ? 'PASS' : 'FAIL';
-$final_exam_status = $final_exam_percentage >= $final_exam_pass_mark ? 'PASS' : 'FAIL';
-$overall_status = ($coursework_status === 'PASS' && $final_exam_status === 'PASS') ? 'PASS' : 'FAIL';
+$subject_assessment_type = $subject_result['assessment_type'] ?? 'coursework_final_exam';
+
+// Calculate dynamic pass marks based on subject type
+if ($subject_assessment_type === 'coursework_only') {
+    // For coursework-only subjects, only check total coursework marks
+    $coursework_pass_mark = 50; // 50% of total coursework weightage
+    $final_exam_pass_mark = 0; // Not applicable
+    
+    // Determine pass/fail status
+    $coursework_status = $coursework_percentage >= $coursework_pass_mark ? 'PASS' : 'FAIL';
+    $final_exam_status = 'N/A'; // Not applicable for coursework-only subjects
+    $overall_status = $coursework_status; // Overall status is same as coursework status
+} else {
+    // For coursework + final exam subjects, check both categories
+    $coursework_pass_mark = $coursework_weight / 2;
+    $final_exam_pass_mark = $final_exam_weight / 2;
+    
+    // Determine pass/fail status
+    $coursework_status = $coursework_percentage >= $coursework_pass_mark ? 'PASS' : 'FAIL';
+    $final_exam_status = $final_exam_percentage >= $final_exam_pass_mark ? 'PASS' : 'FAIL';
+    $overall_status = ($coursework_status === 'PASS' && $final_exam_status === 'PASS') ? 'PASS' : 'FAIL';
+}
 
 // Function to calculate final letter grade based on overall percentage and status
 function calculateOverallGrade($overallPercentage, $overallStatus) {
@@ -316,7 +338,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <div class="subject-banner">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
-                <h2 class="mb-0"><?= htmlspecialchars($student['subject_code'] . ' - ' . $student['subject_name']) ?></h2>
+                <h2 class="mb-0">
+                    <?= htmlspecialchars($student['subject_code'] . ' - ' . $student['subject_name']) ?>
+                    <?php
+                        $type_label = $subject_assessment_type === 'coursework_only' ? 'Coursework Only' : 'Coursework + Final Exam';
+                        echo ' (' . $type_label . ')';
+                    ?>
+                </h2>
                 <a href="student_list.php?class_id=<?= $class_id ?>" class="btn btn-light">
                     <i class="bi bi-arrow-left"></i> Back to Student List
                 </a>
@@ -358,6 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                 </div>
             </div>
+            <?php if ($subject_assessment_type !== 'coursework_only'): ?>
             <div class="col-md-4">
                 <div class="card h-100">
                     <div class="card-body">
@@ -370,6 +399,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
             <div class="col-md-4">
                 <div class="card h-100">
                     <div class="card-body">
@@ -379,6 +409,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <?= $overall_status ?>
                         </span>
                         <p class="text-muted mt-2 mb-0">Final Grade: <?= $final_grade ?></p>
+                        <?php if ($subject_assessment_type === 'coursework_only'): ?>
+                        <small class="text-info">Coursework-only subject</small>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -487,6 +520,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
 
                 <!-- Final Exam -->
+                <?php if ($subject_assessment_type !== 'coursework_only'): ?>
                 <h5 class="mb-3">Final Exam</h5>
                 <div class="row">
                     <?php
@@ -582,6 +616,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

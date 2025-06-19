@@ -44,23 +44,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $stmt->close();
 
-        // Update calendar_events by event_id if provided
+        // Update calendar_events by event_id and subject_id if provided
         if ($event_id) {
-            $upd_stmt = $conn->prepare('UPDATE calendar_events SET event_date = ? WHERE event_id = ?');
-            $upd_stmt->bind_param('si', $due_date, $event_id);
+            $upd_stmt = $conn->prepare('UPDATE calendar_events SET event_date = ? WHERE event_id = ? AND subject_id = ?');
+            $upd_stmt->bind_param('sii', $due_date, $event_id, $subject_id);
             $upd_stmt->execute();
             $upd_stmt->close();
         } else {
             // Insert new event if not found
             $event_text = "Assessment Due: $assessment_type for $subject_name";
-            $ins_stmt = $conn->prepare('INSERT INTO calendar_events (event_date, event_text) VALUES (?, ?)');
-            $ins_stmt->bind_param('ss', $due_date, $event_text);
+            $ins_stmt = $conn->prepare('INSERT INTO calendar_events (event_date, event_text, subject_id) VALUES (?, ?, ?)');
+            $ins_stmt->bind_param('ssi', $due_date, $event_text, $subject_id);
             $ins_stmt->execute();
             $ins_stmt->close();
         }
 
         $conn->commit();
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'redirect' => 'assessment.php?edit_success=1']);
+        exit;
     } catch (Exception $e) {
         $conn->rollback();
         echo json_encode(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);

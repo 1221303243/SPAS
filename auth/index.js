@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const formData = new FormData(form);
 
-        fetch('login.php', { // adjust path if inside auth/
+        fetch('login_handler.php', { // adjust path if inside auth/
             method: 'POST',
             body: formData
         })

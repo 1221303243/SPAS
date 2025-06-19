@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Students' Performance Analytics System (SPAS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../css/landing.css">
+    <link rel="stylesheet" href="css/landing.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body>
@@ -15,8 +15,8 @@
             <p class="lead spas-tagline mb-3">Track, Analyze, and Improve Student Performance</p>
             <p class="spas-summary mb-4">SPAS empowers students, lecturers, and administrators to monitor academic progress, identify risks early, and make data-driven decisions for better educational outcomes.</p>
             <div class="d-flex justify-content-center gap-3 mb-4">
-                <a href="login.php" class="btn spas-btn-primary btn-lg px-4">Login</a>
-                <a href="signup.php" class="btn spas-btn-outline btn-lg px-4">Sign up</a>
+                <a href="auth/login.php" class="btn spas-btn-primary btn-lg px-4">Login</a>
+                <a href="auth/signup.php" class="btn spas-btn-outline btn-lg px-4">Sign up</a>
             </div>
         </div>
     </header>
