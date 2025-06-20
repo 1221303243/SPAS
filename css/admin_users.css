@@ -595,4 +595,25 @@ body {
         box-shadow: none;
         border: 1px solid #ddd;
     }
+}
+
+.alert-success {
+    background-color: #e6f9ed;
+    border: 1.5px solid #b7e4c7;
+    color: #218838;
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 1.08rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.08);
+}
+.alert-success .material-icons {
+    color: #28a745;
+    font-size: 1.4rem;
+    margin-right: 6px;
 } 

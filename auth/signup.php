@@ -1,5 +1,6 @@
 <?php
 // signup.php - Registration page for students/lecturers
+session_start();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -19,19 +20,41 @@
         .btn-signup:hover { background: #0090c1; }
         .login-link { display: block; text-align: center; margin-top: 1.5em; color: #00C1FE; text-decoration: none; font-weight: 500; }
         .login-link:hover { text-decoration: underline; color: #0090c1; }
+        #eduLevelGroup { display: none; }
     </style>
 </head>
 <body>
     <div class="signup-container">
         <h2 class="signup-title">Create Your SPAS Account</h2>
+        
+        <?php if (isset($_SESSION['signup_errors'])): ?>
+            <div class="alert alert-danger" role="alert">
+                <ul class="mb-0">
+                    <?php foreach ($_SESSION['signup_errors'] as $error): ?>
+                        <li><?php echo htmlspecialchars($error); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php unset($_SESSION['signup_errors']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['signup_success'])): ?>
+            <div class="alert alert-success" role="alert">
+                <?php echo htmlspecialchars($_SESSION['signup_success']); ?>
+            </div>
+            <?php unset($_SESSION['signup_success']); ?>
+        <?php endif; ?>
+        
         <form id="signupForm" method="post" action="signup_handler.php" autocomplete="off">
             <div class="mb-3">
                 <label for="fullname" class="form-label">Full Name</label>
-                <input type="text" class="form-control" id="fullname" name="fullname" required>
+                <input type="text" class="form-control" id="fullname" name="fullname" 
+                       value="<?php echo htmlspecialchars($_SESSION['signup_data']['fullname'] ?? ''); ?>" required>
             </div>
             <div class="mb-3">
                 <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" name="email" required>
+                <input type="email" class="form-control" id="email" name="email" 
+                       value="<?php echo htmlspecialchars($_SESSION['signup_data']['email'] ?? ''); ?>" required>
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
@@ -45,8 +68,17 @@
                 <label for="role" class="form-label">Register as</label>
                 <select class="form-select" id="role" name="role" required>
                     <option value="">Select Role</option>
-                    <option value="student">Student</option>
-                    <option value="lecturer">Lecturer</option>
+                    <option value="student" <?php echo ($_SESSION['signup_data']['role'] ?? '') === 'student' ? 'selected' : ''; ?>>Student</option>
+                    <option value="lecturer" <?php echo ($_SESSION['signup_data']['role'] ?? '') === 'lecturer' ? 'selected' : ''; ?>>Lecturer</option>
+                </select>
+            </div>
+            <div class="mb-3" id="eduLevelGroup">
+                <label for="edu_level" class="form-label">Education Level</label>
+                <select class="form-select" id="edu_level" name="edu_level">
+                    <option value="">Select Education Level</option>
+                    <option value="Foundation" <?php echo ($_SESSION['signup_data']['edu_level'] ?? '') === 'Foundation' ? 'selected' : ''; ?>>Foundation</option>
+                    <option value="Diploma" <?php echo ($_SESSION['signup_data']['edu_level'] ?? '') === 'Diploma' ? 'selected' : ''; ?>>Diploma</option>
+                    <option value="Degree" <?php echo ($_SESSION['signup_data']['edu_level'] ?? '') === 'Degree' ? 'selected' : ''; ?>>Degree</option>
                 </select>
             </div>
             <button type="submit" class="btn btn-signup w-100">Sign Up</button>
@@ -55,6 +87,29 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    // Show/hide education level based on role selection
+    document.getElementById('role').addEventListener('change', function() {
+        var eduLevelGroup = document.getElementById('eduLevelGroup');
+        var eduLevel = document.getElementById('edu_level');
+        
+        if (this.value === 'student') {
+            eduLevelGroup.style.display = 'block';
+            eduLevel.required = true;
+        } else {
+            eduLevelGroup.style.display = 'none';
+            eduLevel.required = false;
+            eduLevel.value = '';
+        }
+    });
+
+    // Trigger change event on page load if role is pre-selected
+    window.addEventListener('load', function() {
+        var roleSelect = document.getElementById('role');
+        if (roleSelect.value === 'student') {
+            roleSelect.dispatchEvent(new Event('change'));
+        }
+    });
+
     // Simple client-side validation for password match
     document.getElementById('signupForm').addEventListener('submit', function(e) {
         var pw = document.getElementById('password').value;

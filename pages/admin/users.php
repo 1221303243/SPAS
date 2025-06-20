@@ -21,8 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
         $errors[] = 'Invalid email address.';
     }
     if (empty($errors)) {
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("ssss", $name, $email, $password, $role);
+        $stmt->bind_param("ssss", $name, $email, $hashedPassword, $role);
         if ($stmt->execute()) {
             $user_id = $stmt->insert_id;
             $stmt->close();
@@ -204,6 +205,7 @@ foreach ($roles as $role_key => $role_label) {
             </div>
         <?php elseif (isset($_GET['success'])): ?>
             <div class="alert alert-success">
+                <span class="material-icons">check_circle</span>
                 <?php
                 if ($_GET['success'] == 1) echo 'User added successfully!';
                 elseif ($_GET['success'] == 2) echo 'User updated successfully!';

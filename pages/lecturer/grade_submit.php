@@ -58,9 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         foreach ($grades as $student_id => $marks) {
-            // Calculate weighted mark for this assessment
             $weighted_marks = $marks * $assessment['weightage'] / 100;
-            // Save the marks for this assessment
             $stmt = $conn->prepare('
                 INSERT INTO grades (student_id, subject_id, assessment_id, class_id, marks, weighted_marks, category, date_recorded)
                 VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())
@@ -74,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $stmt->close();
 
-            // Calculate category totals and overall grade
             $stmt = $conn->prepare('
                 SELECT 
                     SUM(CASE 
