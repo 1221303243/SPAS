@@ -11,6 +11,12 @@ if ($_SESSION['role'] !== 'lecturer') {
     exit();
 }
 
+// Check if education level is selected
+if (!isset($_SESSION['edu_level'])) {
+    header("Location: select_edu_level.php");
+    exit();
+}
+
 function getRiskLevel($grade) {
     $low = ['A', 'A-', 'A+', 'B+'];
     $medium = ['B', 'B-','C+'];
@@ -313,7 +319,7 @@ $total_pages = ceil($total_count / $items_per_page);
                     <form method="GET" class="d-flex gap-2" style="max-width: 600px;">
                         <input type="hidden" name="class_id" value="<?= $class_id ?>">
                         <div class="input-group" style="max-width: 300px;">
-                            <input type="text" name="search" class="form-control" placeholder="Search students..." 
+                            <input type="text" name="search" class="form-control" placeholder="Search by ID or name..." 
                                    value="<?= htmlspecialchars($search) ?>">
                             <button class="btn btn-outline-secondary" type="submit">
                                 <i class="bi bi-search"></i>

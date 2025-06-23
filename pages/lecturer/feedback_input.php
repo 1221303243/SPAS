@@ -103,6 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8" />
     <title>Lecturer Feedback Input</title>
     <link rel="stylesheet" href="../../css/feedback_input.css" />
+    <style>
+        .feedback-input-container {
+            max-width: 900px;
+        }
+    </style>
 </head>
 <body>
 <?php include 'topbar.php'; ?>

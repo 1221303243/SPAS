@@ -14,6 +14,12 @@ if ($_SESSION['role'] !== 'lecturer') {
     exit();
 }
 
+// Check if education level is selected
+if (!isset($_SESSION['edu_level'])) {
+    header("Location: select_edu_level.php");
+    exit();
+}
+
 // Include database connection
 require_once '../../auth/db_connection.php';
 require_once '../../config/academic_config.php';

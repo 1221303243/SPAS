@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header("Location: ../pages/student/student_dashboard.php");
                     break;
                 case 'lecturer':
-                    header("Location: ../pages/lecturer/lecturer_dashboard.php");
+                    header("Location: ../pages/lecturer/select_edu_level.php");
                     break;
                 default:
                     header("Location: login.php");

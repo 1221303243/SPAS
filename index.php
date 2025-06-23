@@ -17,6 +17,9 @@
             <div class="d-flex justify-content-center gap-3 mb-4">
                 <a href="auth/login.php" class="btn spas-btn-primary btn-lg px-4">Login</a>
                 <a href="auth/signup.php" class="btn spas-btn-outline btn-lg px-4">Sign up</a>
+                <a href="auth/presentation_login.php" class="btn btn-warning btn-lg px-4">
+                    <i class="bi bi-presentation"></i> Demo Mode
+                </a>
             </div>
         </div>
     </header>

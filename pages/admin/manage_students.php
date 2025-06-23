@@ -71,15 +71,31 @@ if ($result->num_rows > 0) {
 }
 $stmt->close();
 
+// Search logic
+$search_enrolled = isset($_GET['search_enrolled']) ? trim($_GET['search_enrolled']) : '';
+$search_available = isset($_GET['search_available']) ? trim($_GET['search_available']) : '';
+
 // Get enrolled students
 $enrolled_students = [];
-$stmt = $conn->prepare("SELECT s.student_id, s.name, u.email 
-                       FROM students s 
-                       INNER JOIN student_classes sc ON s.student_id = sc.student_id 
-                       INNER JOIN users u ON s.user_id = u.user_id
-                       WHERE sc.class_id = ? 
-                       ORDER BY s.name ASC");
-$stmt->bind_param("i", $class_id);
+$sql_enrolled = "SELECT s.student_id, s.name, u.email 
+                 FROM students s 
+                 INNER JOIN student_classes sc ON s.student_id = sc.student_id 
+                 INNER JOIN users u ON s.user_id = u.user_id
+                 WHERE sc.class_id = ?";
+$params_enrolled = [$class_id];
+$types_enrolled = "i";
+
+if ($search_enrolled) {
+    $sql_enrolled .= " AND (s.name LIKE ? OR s.student_id LIKE ?)";
+    $search_param_enrolled = "%" . $search_enrolled . "%";
+    $params_enrolled[] = $search_param_enrolled;
+    $params_enrolled[] = $search_param_enrolled;
+    $types_enrolled .= "ss";
+}
+$sql_enrolled .= " ORDER BY s.name ASC";
+
+$stmt = $conn->prepare($sql_enrolled);
+$stmt->bind_param($types_enrolled, ...$params_enrolled);
 $stmt->execute();
 $result = $stmt->get_result();
 while ($row = $result->fetch_assoc()) {
@@ -89,14 +105,26 @@ $stmt->close();
 
 // Get all students not enrolled in this class
 $available_students = [];
-$stmt = $conn->prepare("SELECT s.student_id, s.name, u.email 
-                       FROM students s 
-                       INNER JOIN users u ON s.user_id = u.user_id
-                       WHERE s.student_id NOT IN (
-                           SELECT student_id FROM student_classes WHERE class_id = ?
-                       ) 
-                       ORDER BY s.name ASC");
-$stmt->bind_param("i", $class_id);
+$sql_available = "SELECT s.student_id, s.name, u.email 
+                  FROM students s 
+                  INNER JOIN users u ON s.user_id = u.user_id
+                  WHERE s.student_id NOT IN (
+                      SELECT student_id FROM student_classes WHERE class_id = ?
+                  )";
+$params_available = [$class_id];
+$types_available = "i";
+
+if ($search_available) {
+    $sql_available .= " AND (s.name LIKE ? OR s.student_id LIKE ?)";
+    $search_param_available = "%" . $search_available . "%";
+    $params_available[] = $search_param_available;
+    $params_available[] = $search_param_available;
+    $types_available .= "ss";
+}
+$sql_available .= " ORDER BY s.name ASC";
+
+$stmt = $conn->prepare($sql_available);
+$stmt->bind_param($types_available, ...$params_available);
 $stmt->execute();
 $result = $stmt->get_result();
 while ($row = $result->fetch_assoc()) {
@@ -167,6 +195,27 @@ $stmt->close();
         .students-section h3 {
             margin-top: 0;
             color: #1F1235;
+        }
+        
+        .search-box {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px 8px 35px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        
+        .search-box .material-icons {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
         }
         
         .student-list {
@@ -281,9 +330,13 @@ $stmt->close();
         <?php endif; ?>
 
         <div class="students-container">
-            <!-- Enrolled Students -->
             <div class="students-section">
-                <h3>Enrolled Students (<?php echo count($enrolled_students); ?>)</h3>
+                <h3>Enrolled Students (<?= count($enrolled_students) ?>)</h3>
+                <form method="GET" class="search-box">
+                    <input type="hidden" name="class_id" value="<?= $class_id ?>">
+                    <span class="material-icons">search</span>
+                    <input type="text" name="search_enrolled" placeholder="Search by ID or name..." value="<?= htmlspecialchars($search_enrolled) ?>" onchange="this.form.submit()">
+                </form>
                 <div class="student-list">
                     <?php if (!empty($enrolled_students)): ?>
                         <?php foreach ($enrolled_students as $student): ?>
@@ -307,9 +360,13 @@ $stmt->close();
                 </div>
             </div>
 
-            <!-- Available Students -->
             <div class="students-section">
-                <h3>Available Students (<?php echo count($available_students); ?>)</h3>
+                <h3>Available Students (<?= count($available_students) ?>)</h3>
+                <form method="GET" class="search-box">
+                    <input type="hidden" name="class_id" value="<?= $class_id ?>">
+                    <span class="material-icons">search</span>
+                    <input type="text" name="search_available" placeholder="Search by ID or name..." value="<?= htmlspecialchars($search_available) ?>" onchange="this.form.submit()">
+                </form>
                 <div class="student-list">
                     <?php if (!empty($available_students)): ?>
                         <?php foreach ($available_students as $student): ?>

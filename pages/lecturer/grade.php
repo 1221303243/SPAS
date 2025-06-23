@@ -85,9 +85,20 @@ if ($subject_id) {
 // Fetch students for the selected class
 $students = [];
 if ($selected_class_id > 0) {
-    $sql = "SELECT s.student_id, s.name FROM student_classes sc JOIN students s ON sc.student_id = s.student_id WHERE sc.class_id = ? ORDER BY s.name";
+    $sql = "SELECT s.student_id, s.name,
+                   (
+                       SELECT g.grade
+                       FROM grades g
+                       WHERE g.student_id = s.student_id AND g.class_id = ?
+                       ORDER BY g.date_recorded DESC, g.grade_id DESC
+                       LIMIT 1
+                   ) AS current_grade
+            FROM student_classes sc
+            JOIN students s ON sc.student_id = s.student_id
+            WHERE sc.class_id = ?
+            ORDER BY s.name";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $selected_class_id);
+    $stmt->bind_param("ii", $selected_class_id, $selected_class_id);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -257,7 +268,9 @@ if ($selected_class_id > 0) {
                                             <tr>
                                                 <td><?php echo htmlspecialchars($student['student_id']); ?></td>
                                                 <td><?php echo htmlspecialchars($student['name']); ?></td>
-                                                <td class="current-grade" data-student-id="<?php echo $student['student_id']; ?>">-</td>
+                                                <td class="current-grade" data-student-id="<?php echo $student['student_id']; ?>">
+                                                    <?php echo $student['current_grade'] !== null ? htmlspecialchars($student['current_grade']) : '-'; ?>
+                                                </td>
                                                 <td>
                                                     <input type="number" 
                                                            class="form-control grade-input" 

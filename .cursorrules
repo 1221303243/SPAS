@@ -143,4 +143,12 @@ SPAS/
 - Add Class modal in pages/admin/classes.php is now functional, posts to the server, and the status field has been removed. Subject and lecturer dropdowns are now dynamic.
 - Academic configuration system implemented with semester start date management, duration settings, and passing percentage configuration.
 - New admin page: academic_config.php with modern UI and form validation.
-- Updated sidebar navigation to include Academic Config link. 
+- Updated sidebar navigation to include Academic Config link.
+- Fixed lecturer login flow: lecturers now redirect to select_edu_level.php first, then to lecturer_dashboard.php after selecting education level.
+- Added education level validation to lecturer pages (lecturer_dashboard.php, student_list.php, assessment.php, plan.php) to ensure proper flow.
+- Education level selection system implemented with Foundation, Diploma, Undergraduate, and Postgraduate options.
+- Presentation mode implemented for multi-account demonstration: new presentation_login.php with quick login cards for different user roles.
+- Added presentation guide (presentation_guide.php) with instructions for demonstrating multiple user roles simultaneously.
+- Demo mode accessible from main landing page and regular login page for easy presentation access.
+- Multi-session manager (session_manager.php) implemented for switching between multiple user accounts in the same browser window.
+- Session persistence system allows maintaining multiple user sessions and switching between them instantly. 

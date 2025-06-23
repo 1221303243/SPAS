@@ -74,6 +74,11 @@ if (isset($_SESSION['role'])) {
             <button type="submit" class="btn btn-login w-100">Login</button>
         </form>
         <a href="signup.php" class="signup-link"><i class="bi bi-person-plus"></i> Don't have an account? Sign Up</a>
+        <!-- <div class="text-center mt-3">
+            <a href="presentation_login.php" class="btn btn-outline-warning btn-sm">
+                <i class="bi bi-presentation"></i> Demo Mode
+            </a>
+        </div> -->
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
