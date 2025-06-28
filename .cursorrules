@@ -156,4 +156,5 @@ SPAS/
 - Functional system status monitoring: Implemented real-time database connectivity checks, server health metrics (disk usage, memory usage, PHP version), and security monitoring with failed login attempt tracking.
 - Login attempt tracking: Added login_attempts table and logging system to monitor successful and failed login attempts for security analysis.
 - Interactive status details: Admin dashboard now shows clickable system status cards with detailed metrics in modal dialogs.
-- Functional search functionality: Class management page now has a working search bar that allows admins to search by Class ID or Class Name with server-side filtering and clear functionality. 
+- Functional search functionality: Class management page now has a working search bar that allows admins to search by Class ID or Class Name with server-side filtering and clear functionality.
+- Fixed grade submission system: Corrected MySQL bind parameter types in grade_submit.php (changed 'iiiidss' to 'iiiidds') and added comprehensive error handling with detailed logging for all SQL operations to help debug grade submission issues. 

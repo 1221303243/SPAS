@@ -68,8 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     category = VALUES(category), 
                     date_recorded = CURDATE()
             ');
-            $stmt->bind_param('iiiidss', $student_id, $assessment['subject_id'], $assessment_id, $class_id, $marks, $weighted_marks, $assessment['category']);
-            $stmt->execute();
+            $stmt->bind_param('iiiidds', $student_id, $assessment['subject_id'], $assessment_id, $class_id, $marks, $weighted_marks, $assessment['category']);
+            
+            if (!$stmt->execute()) {
+                error_log('Grade insert error: ' . $stmt->error);
+                throw new Exception('Failed to insert grade for student ID: ' . $student_id);
+            }
             $stmt->close();
 
             $stmt = $conn->prepare('
@@ -91,7 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE student_id = ? AND subject_id = ? AND class_id = ?
             ');
             $stmt->bind_param('iii', $student_id, $assessment['subject_id'], $class_id);
-            $stmt->execute();
+            
+            if (!$stmt->execute()) {
+                error_log('Grade calculation error: ' . $stmt->error);
+                throw new Exception('Failed to calculate grades for student ID: ' . $student_id);
+            }
+            
             $result = $stmt->get_result()->fetch_assoc();
             $stmt->close();
 
@@ -104,7 +113,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Get subject assessment type
             $stmt = $conn->prepare('SELECT assessment_type FROM subjects WHERE subject_id = ?');
             $stmt->bind_param('i', $assessment['subject_id']);
-            $stmt->execute();
+            
+            if (!$stmt->execute()) {
+                error_log('Subject assessment type error: ' . $stmt->error);
+                throw new Exception('Failed to get subject assessment type for student ID: ' . $student_id);
+            }
+            
             $subject_result = $stmt->get_result()->fetch_assoc();
             $stmt->close();
             
@@ -130,7 +144,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHERE subject_id = ?
                 ');
                 $weight_stmt->bind_param('i', $assessment['subject_id']);
-                $weight_stmt->execute();
+                
+                if (!$weight_stmt->execute()) {
+                    error_log('Weight calculation error: ' . $weight_stmt->error);
+                    throw new Exception('Failed to calculate weightages for student ID: ' . $student_id);
+                }
+                
                 $weight_result = $weight_stmt->get_result()->fetch_assoc();
                 $weight_stmt->close();
                 
@@ -167,7 +186,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $assessment['subject_id'], 
                 $class_id
             );
-            $stmt->execute();
+            
+            if (!$stmt->execute()) {
+                error_log('Grade update error: ' . $stmt->error);
+                throw new Exception('Failed to update final grade for student ID: ' . $student_id);
+            }
+            
             $stmt->close();
 
             // After saving the current assessment's marks and weighted_marks...
@@ -180,7 +204,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ";
             $assessments_stmt = $conn->prepare($assessments_sql);
             $assessments_stmt->bind_param('i', $assessment['subject_id']);
-            $assessments_stmt->execute();
+            
+            if (!$assessments_stmt->execute()) {
+                error_log('Assessments list error: ' . $assessments_stmt->error);
+                throw new Exception('Failed to get assessments list for student ID: ' . $student_id);
+            }
+            
             $assessments_result = $assessments_stmt->get_result();
             $assessment_ids = [];
             while ($row = $assessments_result->fetch_assoc()) {
@@ -206,7 +235,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ";
                 $sum_stmt = $conn->prepare($sum_sql);
                 $sum_stmt->bind_param($types, ...$params);
-                $sum_stmt->execute();
+                
+                if (!$sum_stmt->execute()) {
+                    error_log('Cumulative total error: ' . $sum_stmt->error);
+                    throw new Exception('Failed to calculate cumulative total for student ID: ' . $student_id);
+                }
+                
                 $sum_result = $sum_stmt->get_result()->fetch_assoc();
                 $sum_stmt->close();
 
@@ -220,7 +254,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ";
                 $update_stmt = $conn->prepare($update_sql);
                 $update_stmt->bind_param('diiii', $cumulative_total, $student_id, $assessment['subject_id'], $class_id, $assessment_id);
-                $update_stmt->execute();
+                
+                if (!$update_stmt->execute()) {
+                    error_log('Total marks update error: ' . $update_stmt->error);
+                    throw new Exception('Failed to update total marks for student ID: ' . $student_id);
+                }
+                
                 $update_stmt->close();
             }
         }
