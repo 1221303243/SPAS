@@ -52,7 +52,7 @@
             <div class="row mt-5 justify-content-center">
                 <div class="col-12 col-md-8 text-center">
                     <div class="screenshot-placeholder mb-3">
-                        <div class="placeholder-img">[ Screenshot or Demo Video Coming Soon ]</div>
+                        <img src="../img/image.png" alt="SPAS Dashboard Preview" class="img-fluid rounded shadow" style="max-width: 100%; height: auto;">
                     </div>
                 </div>
             </div>

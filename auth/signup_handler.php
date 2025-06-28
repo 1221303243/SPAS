@@ -17,6 +17,8 @@ if (empty($_POST['email'])) {
     $errors[] = "Email is required";
 } elseif (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
     $errors[] = "Please enter a valid email address (e.g., user@example.com)";
+} elseif (!str_ends_with(strtolower($_POST['email']), '.edu.my')) {
+    $errors[] = "Students must use a Malaysian educational institution email address ending with .edu.my";
 }
 
 // Password validation
@@ -42,13 +44,12 @@ if ($_POST['password'] !== $_POST['confirm_password']) {
     $errors[] = "Passwords do not match";
 }
 
-if (empty($_POST['role'])) {
-    $errors[] = "Please select a role (Student or Lecturer)";
-} elseif (!in_array($_POST['role'], ['student', 'lecturer'])) {
-    $errors[] = "Invalid role selected";
+// Role is always 'student' from the form
+if (empty($_POST['role']) || $_POST['role'] !== 'student') {
+    $errors[] = "Invalid registration request";
 }
 
-if ($_POST['role'] === 'student' && empty($_POST['edu_level'])) {
+if (empty($_POST['edu_level'])) {
     $errors[] = "Please select your education level";
 }
 
@@ -89,14 +90,9 @@ try {
     $userId = $conn->insert_id;
     $stmt->close();
 
-    // Insert into role-specific table
-    if ($_POST['role'] === 'student') {
-        $stmt = $conn->prepare("INSERT INTO students (user_id, name, edu_level) VALUES (?, ?, ?)");
-        $stmt->bind_param("iss", $userId, $_POST['fullname'], $_POST['edu_level']);
-    } else {
-        $stmt = $conn->prepare("INSERT INTO lecturers (user_id, name) VALUES (?, ?)");
-        $stmt->bind_param("is", $userId, $_POST['fullname']);
-    }
+    // Insert into students table
+    $stmt = $conn->prepare("INSERT INTO students (user_id, name, edu_level) VALUES (?, ?, ?)");
+    $stmt->bind_param("iss", $userId, $_POST['fullname'], $_POST['edu_level']);
     
     if (!$stmt->execute()) {
         throw new Exception("Database error: Failed to create profile. " . $stmt->error);

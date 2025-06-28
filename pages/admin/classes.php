@@ -122,24 +122,31 @@ $edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter']
             </button>
         </div>
 
-        <div class="search-filter-container">
+        <form method="GET" class="search-filter-container">
             <div class="search-bar">
                 <span class="material-icons search-icon">search</span>
-                <input type="text" id="searchInput" name="search" placeholder="Search classes..." value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" />
+                <input type="text" name="search" placeholder="Search by Class ID or Class Name..." value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" />
             </div>
             <div class="filter-options">
-                <form method="GET" style="display:flex;align-items:center;gap:8px;">
-                    <select name="edu_level_filter" class="filter-select">
-                        <option value="">All Levels</option>
-                        <option value="Foundation" <?php if($edu_level_filter==='Foundation') echo 'selected'; ?>>Foundation</option>
-                        <option value="Diploma" <?php if($edu_level_filter==='Diploma') echo 'selected'; ?>>Diploma</option>
-                        <option value="Undergraduate" <?php if($edu_level_filter==='Undergraduate') echo 'selected'; ?>>Undergraduate</option>
-                        <option value="Postgraduate" <?php if($edu_level_filter==='Postgraduate') echo 'selected'; ?>>Postgraduate</option>
-                    </select>
-                    <button type="submit" class="filters-btn"><span class="material-icons">filter_list</span>Apply</button>
-                </form>
+                <select name="edu_level_filter" class="filter-select">
+                    <option value="">All Levels</option>
+                    <option value="Foundation" <?php if($edu_level_filter==='Foundation') echo 'selected'; ?>>Foundation</option>
+                    <option value="Diploma" <?php if($edu_level_filter==='Diploma') echo 'selected'; ?>>Diploma</option>
+                    <option value="Undergraduate" <?php if($edu_level_filter==='Undergraduate') echo 'selected'; ?>>Undergraduate</option>
+                    <option value="Postgraduate" <?php if($edu_level_filter==='Postgraduate') echo 'selected'; ?>>Postgraduate</option>
+                </select>
+                <button type="submit" class="filters-btn">
+                    <span class="material-icons">filter_list</span>
+                    Apply
+                </button>
+                <?php if (!empty($_GET['search']) || !empty($_GET['edu_level_filter'])): ?>
+                    <a href="classes.php" class="filters-btn" style="text-decoration: none; color: inherit;">
+                        <span class="material-icons">clear</span>
+                        Clear
+                    </a>
+                <?php endif; ?>
             </div>
-        </div>
+        </form>
 
         <div class="classes-list-container">
             <table class="classes-list-table" id="classesTable">
@@ -155,27 +162,33 @@ $edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter']
                 </thead>
                 <tbody>
                 <?php
-                // Fetch all classes with subject and lecturer info (no status)
+                // Fetch all classes with subject and lecturer info
                 $classes = [];
                 $sql = "SELECT c.class_id, c.class_name, c.edu_level, c.semester, c.year, s.subject_name, l.name AS lecturer_name, c.subject_id, c.lecturer_id FROM classes c LEFT JOIN subjects s ON c.subject_id = s.subject_id LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id";
                 $where = [];
                 $params = [];
                 $types = '';
+                
+                // Education level filter
                 if ($edu_level_filter) {
                     $where[] = 'c.edu_level = ?';
                     $params[] = $edu_level_filter;
                     $types .= 's';
                 }
+                
+                // Search functionality - search by class ID or class name
                 if (!empty($_GET['search'])) {
                     $search = '%' . $_GET['search'] . '%';
-                    $where[] = '(c.class_name LIKE ? OR s.subject_name LIKE ? OR l.name LIKE ? OR c.class_id LIKE ? OR c.edu_level LIKE ? )';
-                    $params = array_merge($params, [$search, $search, $search, $search, $search]);
-                    $types .= 'sssss';
+                    $where[] = '(c.class_id LIKE ? OR c.class_name LIKE ?)';
+                    $params = array_merge($params, [$search, $search]);
+                    $types .= 'ss';
                 }
+                
                 if ($where) {
                     $sql .= ' WHERE ' . implode(' AND ', $where);
                 }
                 $sql .= ' ORDER BY c.class_id ASC';
+                
                 $stmt = $conn->prepare($sql);
                 if ($params) {
                     $stmt->bind_param($types, ...$params);
@@ -218,7 +231,9 @@ $edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter']
                         echo "</tr>";
                     }
                 } else {
-                    echo "<tr><td colspan='5' style='text-align:center; color:#888;'>No classes found.</td></tr>";
+                    $searchTerm = !empty($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
+                    $message = $searchTerm ? "No classes found matching '$searchTerm'" : "No classes found";
+                    echo "<tr><td colspan='6' style='text-align:center; color:#888;'>$message</td></tr>";
                 }
                 ?>
                 </tbody>
@@ -368,39 +383,6 @@ $edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter']
 
         function closeEditClassModal() {
             document.getElementById('editClassModal').style.display = 'none';
-        }
-
-        function filterClasses() {
-            const input = document.getElementById('searchInput');
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById('classesTable');
-            const rows = table.getElementsByTagName('tr');
-
-            // Loop through all table rows except header
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                const cells = row.getElementsByTagName('td');
-                let found = false;
-
-                // Loop through all cells in the row
-                for (let j = 0; j < cells.length - 1; j++) { // Exclude the Actions column
-                    const cell = cells[j];
-                    if (cell) {
-                        const text = cell.textContent || cell.innerText;
-                        if (text.toLowerCase().indexOf(filter) > -1) {
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-
-                // Show/hide row based on search
-                if (found) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            }
         }
 
         // Close modal when clicking outside

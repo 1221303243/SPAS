@@ -20,6 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Invalid email address.';
     }
+    if ($role === 'student' && !str_ends_with(strtolower($email), '.edu.my')) {
+        $errors[] = 'Students must use a Malaysian educational institution email address ending with .edu.my';
+    }
     if (empty($errors)) {
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
@@ -64,6 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
     }
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Invalid email address.';
+    }
+    if ($role === 'student' && !str_ends_with(strtolower($email), '.edu.my')) {
+        $errors[] = 'Students must use a Malaysian educational institution email address ending with .edu.my';
     }
     if (empty($errors)) {
         $stmt = $conn->prepare("UPDATE users SET username=?, email=? WHERE user_id=?");
@@ -333,6 +339,9 @@ foreach ($roles as $role_key => $role_label) {
                     <div class="form-group">
                         <label for="email">Email</label>
                         <input type="email" id="email" name="email" required>
+                        <div class="form-text" id="addEmailHint" style="display: none; font-size: 12px; color: #6c757d; margin-top: 4px;">
+                            <i class="material-icons" style="font-size: 14px; vertical-align: middle;">info</i> Students must use a Malaysian educational institution email (.edu.my)
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="role">Role</label>
@@ -381,6 +390,9 @@ foreach ($roles as $role_key => $role_label) {
                     <div class="form-group">
                         <label for="edit_email">Email</label>
                         <input type="email" id="edit_email" name="edit_email" required>
+                        <div class="form-text" id="editEmailHint" style="display: none; font-size: 12px; color: #6c757d; margin-top: 4px;">
+                            <i class="material-icons" style="font-size: 14px; vertical-align: middle;">info</i> Students must use a Malaysian educational institution email (.edu.my)
+                        </div>
                     </div>
                     <div class="form-group" id="edit-edu-level-group" style="display:none;">
                         <label for="edit_edu_level">Education Level</label>
@@ -436,28 +448,86 @@ foreach ($roles as $role_key => $role_label) {
         function openViewUserModal(user) {
             let idLabel = '';
             let idValue = '';
+            let roleIcon = '';
+            
             if (user.role === 'student') {
                 idLabel = 'Student ID';
                 idValue = user.student_id || '-';
+                roleIcon = 'school';
             } else if (user.role === 'lecturer') {
                 idLabel = 'Lecturer ID';
                 idValue = user.lecturer_id || '-';
+                roleIcon = 'person';
             } else if (user.role === 'admin') {
                 idLabel = 'Admin ID';
                 idValue = user.admin_id || '-';
+                roleIcon = 'admin_panel_settings';
             }
-            let roleBadge = `<span style='display:inline-block;padding:2px 10px;border-radius:12px;background:#00C1FE;color:#fff;font-size:13px;margin-left:8px;'>${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</span>`;
-            let html = `<div style='padding:10px 0 0 0;'>`;
-            html += `<dl style='margin:0;'>`;
-            html += `<dt style='font-weight:600;margin-bottom:4px;'>User ID</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${user.user_id}</dd>`;
-            if (idLabel) {
-                html += `<dt style='font-weight:600;margin-bottom:4px;'>${idLabel}</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${idValue}</dd>`;
-            }
-            html += `<dt style='font-weight:600;margin-bottom:4px;'>Name</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${user.name || '-'}</dd>`;
-            html += `<dt style='font-weight:600;margin-bottom:4px;'>Email</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${user.email || '-'}</dd>`;
-            html += `<dt style='font-weight:600;margin-bottom:4px;'>Role</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${roleBadge}</dd>`;
-            html += `<dt style='font-weight:600;margin-bottom:4px;'>Education Level</dt><dd style='margin:0 0 12px 0;padding-left:24px;'>${user.edu_level || '-'}</dd>`;
-            html += `</dl></div>`;
+            
+            let roleBadge = `<span style='display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;background:#00C1FE;color:#fff;font-size:12px;font-weight:500;'>
+                <i class="material-icons" style="font-size:16px;">${roleIcon}</i>
+                ${user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+            </span>`;
+            
+            let html = `
+                <div style='background: linear-gradient(135deg, #00C1FE 0%, #1F1235 100%); padding: 20px; margin: -20px -20px 20px -20px; border-radius: 8px 8px 0 0;'>
+                    <div style='text-align: center; color: white;'>
+                        <div style='width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;'>
+                            <i class="material-icons" style="font-size: 30px; color: white;">${roleIcon}</i>
+                        </div>
+                        <h3 style='margin: 0 0 4px 0; font-size: 20px;'>${user.name || 'Unknown User'}</h3>
+                        <p style='margin: 0; opacity: 0.9; font-size: 14px;'>${user.email || 'No email'}</p>
+                    </div>
+                </div>
+                
+                <div style='display: grid; gap: 16px;'>
+                    <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 16px;'>
+                        <div style='background: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #00C1FE;'>
+                            <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 4px;'>
+                                <i class="material-icons" style="font-size: 18px; color: #666;">badge</i>
+                                <span style='font-weight: 600; color: #1F1235; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;'>User ID</span>
+                            </div>
+                            <div style='color: #333; font-size: 16px; font-weight: 500;'>${user.user_id}</div>
+                        </div>
+                        
+                        ${idLabel ? `
+                        <div style='background: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #28a745;'>
+                            <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 4px;'>
+                                <i class="material-icons" style="font-size: 18px; color: #666;">assignment_ind</i>
+                                <span style='font-weight: 600; color: #1F1235; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;'>${idLabel}</span>
+                            </div>
+                            <div style='color: #333; font-size: 16px; font-weight: 500;'>${idValue}</div>
+                        </div>
+                        ` : '<div></div>'}
+                    </div>
+                    
+                    <div style='background: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #ffc107;'>
+                        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 8px;'>
+                            <i class="material-icons" style="font-size: 18px; color: #666;">verified_user</i>
+                            <span style='font-weight: 600; color: #1F1235; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;'>Role</span>
+                        </div>
+                        <div>${roleBadge}</div>
+                    </div>
+                    
+                    ${user.edu_level && user.edu_level !== '-' ? `
+                    <div style='background: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #6f42c1;'>
+                        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 4px;'>
+                            <i class="material-icons" style="font-size: 18px; color: #666;">school</i>
+                            <span style='font-weight: 600; color: #1F1235; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;'>Education Level</span>
+                        </div>
+                        <div style='color: #333; font-size: 16px; font-weight: 500;'>${user.edu_level}</div>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div style='margin-top: 20px; padding-top: 16px; border-top: 1px solid #e9ecef; text-align: center;'>
+                    <div style='display: inline-flex; align-items: center; gap: 6px; color: #6c757d; font-size: 12px;'>
+                        <i class="material-icons" style="font-size: 14px;">info</i>
+                        User information as stored in SPAS system
+                    </div>
+                </div>
+            `;
+            
             document.getElementById('viewUserBody').innerHTML = html;
             document.getElementById('viewUserModal').style.display = 'block';
         }
@@ -476,23 +546,27 @@ foreach ($roles as $role_key => $role_label) {
             if (event.target == viewModal) viewModal.style.display = 'none';
         }
 
-        // Add User Modal: show edu_level if student
+        // Add User Modal: show edu_level and email hint if student
         const addRoleSelect = document.getElementById('role');
         const addEduLevelGroup = document.getElementById('add-edu-level-group');
+        const addEmailHint = document.getElementById('addEmailHint');
         addRoleSelect.addEventListener('change', function() {
-            addEduLevelGroup.style.display = (this.value === 'student') ? 'block' : 'none';
+            const isStudent = this.value === 'student';
+            addEduLevelGroup.style.display = isStudent ? 'block' : 'none';
+            addEmailHint.style.display = isStudent ? 'block' : 'none';
         });
 
-        // Edit User Modal: show edu_level if student
+        // Edit User Modal: show edu_level and email hint if student
         const editRoleInput = document.getElementById('edit_role');
         const editEduLevelGroup = document.getElementById('edit-edu-level-group');
         const editEduLevelSelect = document.getElementById('edit_edu_level');
+        const editEmailHint = document.getElementById('editEmailHint');
         function setEditEduLevelVisibility(role, eduLevel) {
-            if (role === 'student') {
-                editEduLevelGroup.style.display = 'block';
-                if (eduLevel) editEduLevelSelect.value = eduLevel;
-            } else {
-                editEduLevelGroup.style.display = 'none';
+            const isStudent = role === 'student';
+            editEduLevelGroup.style.display = isStudent ? 'block' : 'none';
+            editEmailHint.style.display = isStudent ? 'block' : 'none';
+            if (isStudent && eduLevel) {
+                editEduLevelSelect.value = eduLevel;
             }
         }
 

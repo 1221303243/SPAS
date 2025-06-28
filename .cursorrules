@@ -151,4 +151,9 @@ SPAS/
 - Added presentation guide (presentation_guide.php) with instructions for demonstrating multiple user roles simultaneously.
 - Demo mode accessible from main landing page and regular login page for easy presentation access.
 - Multi-session manager (session_manager.php) implemented for switching between multiple user accounts in the same browser window.
-- Session persistence system allows maintaining multiple user sessions and switching between them instantly. 
+- Session persistence system allows maintaining multiple user sessions and switching between them instantly.
+- Student-only registration: The signup form is now restricted to students only, with role automatically set to "student" and education level selection always visible. Email validation requires .edu.my domain for all registrations.
+- Functional system status monitoring: Implemented real-time database connectivity checks, server health metrics (disk usage, memory usage, PHP version), and security monitoring with failed login attempt tracking.
+- Login attempt tracking: Added login_attempts table and logging system to monitor successful and failed login attempts for security analysis.
+- Interactive status details: Admin dashboard now shows clickable system status cards with detailed metrics in modal dialogs.
+- Functional search functionality: Class management page now has a working search bar that allows admins to search by Class ID or Class Name with server-side filtering and clear functionality. 
