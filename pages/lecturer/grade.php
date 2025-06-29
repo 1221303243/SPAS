@@ -85,26 +85,145 @@ if ($subject_id) {
 // Fetch students for the selected class
 $students = [];
 if ($selected_class_id > 0) {
-    $sql = "SELECT s.student_id, s.name,
-                   (
-                       SELECT g.grade
-                       FROM grades g
-                       WHERE g.student_id = s.student_id AND g.class_id = ?
-                       ORDER BY g.date_recorded DESC, g.grade_id DESC
-                       LIMIT 1
-                   ) AS current_grade
+    // Get the subject_id for this class
+    $class_subject_id = null;
+    foreach ($classes as $class) {
+        if ($class['class_id'] == $selected_class_id) {
+            $class_subject_id = $class['subject_id'];
+            break;
+        }
+    }
+    
+    $sql = "SELECT s.student_id, s.name
             FROM student_classes sc
             JOIN students s ON sc.student_id = s.student_id
             WHERE sc.class_id = ?
             ORDER BY s.name";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ii", $selected_class_id, $selected_class_id);
+    $stmt->bind_param("i", $selected_class_id);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
+        // Calculate overall grade for this student
+        $student_id = $row['student_id'];
+        $overall_grade = calculateOverallGrade($conn, $student_id, $class_subject_id, $selected_class_id);
+        $row['current_grade'] = $overall_grade;
         $students[] = $row;
     }
     $stmt->close();
+}
+
+// Function to calculate overall grade for a student
+function calculateOverallGrade($conn, $student_id, $subject_id, $class_id) {
+    // Get all grades for this student in this subject/class
+    $stmt = $conn->prepare('
+        SELECT 
+            SUM(CASE 
+                WHEN category = "coursework" 
+                THEN marks * (SELECT weightage FROM assessment_plans WHERE assessment_id = g.assessment_id) / 100 
+                ELSE 0 
+            END) as coursework_total,
+            SUM(CASE 
+                WHEN category = "final_exam" 
+                THEN marks * (SELECT weightage FROM assessment_plans WHERE assessment_id = g.assessment_id) / 100 
+                ELSE 0 
+            END) as final_exam_total
+        FROM grades g
+        WHERE student_id = ? AND subject_id = ? AND class_id = ?
+    ');
+    $stmt->bind_param('iii', $student_id, $subject_id, $class_id);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $coursework_total = $result['coursework_total'] ?? 0;
+    $final_exam_total = $result['final_exam_total'] ?? 0;
+    
+    // If no grades exist yet, return null
+    if ($coursework_total == 0 && $final_exam_total == 0) {
+        return null;
+    }
+
+    // Get subject assessment type
+    $stmt = $conn->prepare('SELECT assessment_type FROM subjects WHERE subject_id = ?');
+    $stmt->bind_param('i', $subject_id);
+    $stmt->execute();
+    $subject_result = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    $subject_assessment_type = $subject_result['assessment_type'] ?? 'coursework_final_exam';
+
+    // Calculate grade based on subject type
+    $grade = '';
+    if ($subject_assessment_type === 'coursework_only') {
+        // For coursework-only subjects, use coursework total for letter grade
+        $final_percentage = $coursework_total;
+    } else {
+        // For coursework + final exam subjects, check both categories pass first
+        $coursework_weight = 0;
+        $final_exam_weight = 0;
+        
+        // Get total weightages for each category
+        $weight_stmt = $conn->prepare('
+            SELECT 
+                SUM(CASE WHEN category = "coursework" THEN weightage ELSE 0 END) as coursework_weight,
+                SUM(CASE WHEN category = "final_exam" THEN weightage ELSE 0 END) as final_exam_weight
+            FROM assessment_plans 
+            WHERE subject_id = ?
+        ');
+        $weight_stmt->bind_param('i', $subject_id);
+        $weight_stmt->execute();
+        $weight_result = $weight_stmt->get_result()->fetch_assoc();
+        $weight_stmt->close();
+        
+        $coursework_weight = $weight_result['coursework_weight'] ?? 0;
+        $final_exam_weight = $weight_result['final_exam_weight'] ?? 0;
+        
+        // Check if both categories pass minimum requirements (only if both have grades)
+        $coursework_pass = true;
+        $final_exam_pass = true;
+        
+        if ($coursework_weight > 0 && $coursework_total > 0) {
+            $coursework_pass = ($coursework_total >= ($coursework_weight * 0.4));
+        }
+        if ($final_exam_weight > 0 && $final_exam_total > 0) {
+            $final_exam_pass = ($final_exam_total >= ($final_exam_weight * 0.4));
+        }
+        
+        // If we have grades in both categories and either fails minimum, grade is F
+        if (($coursework_total > 0 && $final_exam_total > 0) && (!$coursework_pass || !$final_exam_pass)) {
+            return 'F';
+        }
+        
+        $final_percentage = $coursework_total + $final_exam_total; // Total combined percentage
+    }
+    
+    // Calculate letter grade based on final percentage using MMU grading system
+    if ($final_percentage >= 90) {
+        $grade = 'A+';        // 90-100% (Exceptional)
+    } elseif ($final_percentage >= 80) {
+        $grade = 'A';         // 80-89.99% (Excellent)
+    } elseif ($final_percentage >= 76) {
+        $grade = 'B+';        // 76-79.99%
+    } elseif ($final_percentage >= 72) {
+        $grade = 'B';         // 72-75.99% (Good)
+    } elseif ($final_percentage >= 68) {
+        $grade = 'B-';        // 68-71.99%
+    } elseif ($final_percentage >= 65) {
+        $grade = 'C+';        // 65-67.99%
+    } elseif ($final_percentage >= 60) {
+        $grade = 'C';         // 60-64.99% (Average)
+    } elseif ($final_percentage >= 56) {
+        $grade = 'C-';        // 56-59.99%
+    } elseif ($final_percentage >= 50) {
+        $grade = 'D+';        // 50-55.99%
+    } elseif ($final_percentage >= 40) {
+        $grade = 'D';         // 40-49% (Marginal Pass)
+    } else {
+        $grade = 'F';         // 0-39.99% (Fail)
+    }
+    
+    return $grade;
 }
 ?>
 <!DOCTYPE html>

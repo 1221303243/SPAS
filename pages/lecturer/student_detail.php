@@ -137,34 +137,35 @@ if ($subject_assessment_type === 'coursework_only') {
     $overall_status = ($coursework_status === 'PASS' && $final_exam_status === 'PASS') ? 'PASS' : 'FAIL';
 }
 
-// Function to calculate final letter grade based on overall percentage and status
+// Function to calculate final letter grade based on overall percentage and status using MMU grading system
 function calculateOverallGrade($overallPercentage, $overallStatus) {
     if ($overallStatus === 'FAIL') {
         return 'F'; // If overall status is FAIL, the grade is F
     }
 
-    if ($overallPercentage >= 95) {
-        return 'A+';
-    } elseif ($overallPercentage >= 90) {
-        return 'A';
-    } elseif ($overallPercentage >= 85) {
-        return 'A-';
+    // MMU grading system
+    if ($overallPercentage >= 90) {
+        return 'A+';        // 90-100% (Exceptional)
     } elseif ($overallPercentage >= 80) {
-        return 'B+';
-    } elseif ($overallPercentage >= 75) {
-        return 'B';
-    } elseif ($overallPercentage >= 70) {
-        return 'B-';
+        return 'A';         // 80-89.99% (Excellent)
+    } elseif ($overallPercentage >= 76) {
+        return 'B+';        // 76-79.99%
+    } elseif ($overallPercentage >= 72) {
+        return 'B';         // 72-75.99% (Good)
+    } elseif ($overallPercentage >= 68) {
+        return 'B-';        // 68-71.99%
     } elseif ($overallPercentage >= 65) {
-        return 'C+';
+        return 'C+';        // 65-67.99%
     } elseif ($overallPercentage >= 60) {
-        return 'C';
-    } elseif ($overallPercentage >= 55) {
-        return 'C-';
+        return 'C';         // 60-64.99% (Average)
+    } elseif ($overallPercentage >= 56) {
+        return 'C-';        // 56-59.99%
     } elseif ($overallPercentage >= 50) {
-        return 'D';
+        return 'D+';        // 50-55.99%
+    } elseif ($overallPercentage >= 40) {
+        return 'D';         // 40-49% (Marginal Pass)
     } else {
-        return 'F'; // Should ideally be caught by overallStatus 'FAIL' but as a fallback
+        return 'F';         // 0-39.99% (Fail)
     }
 }
 
@@ -173,11 +174,11 @@ $final_grade = calculateOverallGrade($overall_percentage, $overall_status);
 
 // Map grade to Bootstrap color class
 function getGradeColorClass($grade) {
-    if (in_array($grade, ['A+', 'A', 'A-'])) {
+    if (in_array($grade, ['A+', 'A'])) {
         return 'bg-success'; // Green
-    } elseif (in_array($grade, ['B+', 'B', 'B-', 'C+', 'C', 'C-', 'D'])) {
+    } elseif (in_array($grade, ['B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D'])) {
         return 'bg-warning text-dark'; // Yellow/Orange
-    } elseif (in_array($grade, ['E', 'F'])) {
+    } elseif (in_array($grade, ['F'])) {
         return 'bg-danger'; // Red
     }
     return 'bg-secondary'; // Default/gray
@@ -261,28 +262,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $coursework_pass = ($coursework_weight > 0) ? ($coursework_total >= ($coursework_weight / 2)) : true;
                 $final_exam_pass = ($final_exam_weight > 0) ? ($final_exam_total >= ($final_exam_weight / 2)) : true;
                 if ($coursework_pass && $final_exam_pass) {
+                    // MMU grading system
                     if ($total_marks >= 90) {
-                        $grade = 'A+';
-                    } elseif ($total_marks >= 85) {
-                        $grade = 'A';
+                        $grade = 'A+';        // 90-100% (Exceptional)
                     } elseif ($total_marks >= 80) {
-                        $grade = 'A-';
-                    } elseif ($total_marks >= 75) {
-                        $grade = 'B+';
-                    } elseif ($total_marks >= 70) {
-                        $grade = 'B';
+                        $grade = 'A';         // 80-89.99% (Excellent)
+                    } elseif ($total_marks >= 76) {
+                        $grade = 'B+';        // 76-79.99%
+                    } elseif ($total_marks >= 72) {
+                        $grade = 'B';         // 72-75.99% (Good)
+                    } elseif ($total_marks >= 68) {
+                        $grade = 'B-';        // 68-71.99%
                     } elseif ($total_marks >= 65) {
-                        $grade = 'B-';
+                        $grade = 'C+';        // 65-67.99%
                     } elseif ($total_marks >= 60) {
-                        $grade = 'C+';
-                    } elseif ($total_marks >= 55) {
-                        $grade = 'C';
+                        $grade = 'C';         // 60-64.99% (Average)
+                    } elseif ($total_marks >= 56) {
+                        $grade = 'C-';        // 56-59.99%
                     } elseif ($total_marks >= 50) {
-                        $grade = 'C-';
-                    } elseif ($total_marks >= 45) {
-                        $grade = 'D';
+                        $grade = 'D+';        // 50-55.99%
+                    } elseif ($total_marks >= 40) {
+                        $grade = 'D';         // 40-49% (Marginal Pass)
                     } else {
-                        $grade = 'F';
+                        $grade = 'F';         // 0-39.99% (Fail)
                     }
                 } else {
                     $grade = 'F';

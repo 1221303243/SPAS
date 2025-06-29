@@ -520,28 +520,29 @@ $subject_assessment_type = $subject_result['assessment_type'] ?? 'coursework_fin
                     if ($overallStatus === 'FAIL') {
                         return 'F';
                     }
-                    if ($overallPercentage >= 95) {
-                        return 'A+';
-                    } elseif ($overallPercentage >= 90) {
-                        return 'A';
-                    } elseif ($overallPercentage >= 85) {
-                        return 'A-';
+                    // MMU grading system
+                    if ($overallPercentage >= 90) {
+                        return 'A+';        // 90-100% (Exceptional)
                     } elseif ($overallPercentage >= 80) {
-                        return 'B+';
-                    } elseif ($overallPercentage >= 75) {
-                        return 'B';
-                    } elseif ($overallPercentage >= 70) {
-                        return 'B-';
+                        return 'A';         // 80-89.99% (Excellent)
+                    } elseif ($overallPercentage >= 76) {
+                        return 'B+';        // 76-79.99%
+                    } elseif ($overallPercentage >= 72) {
+                        return 'B';         // 72-75.99% (Good)
+                    } elseif ($overallPercentage >= 68) {
+                        return 'B-';        // 68-71.99%
                     } elseif ($overallPercentage >= 65) {
-                        return 'C+';
+                        return 'C+';        // 65-67.99%
                     } elseif ($overallPercentage >= 60) {
-                        return 'C';
-                    } elseif ($overallPercentage >= 55) {
-                        return 'C-';
+                        return 'C';         // 60-64.99% (Average)
+                    } elseif ($overallPercentage >= 56) {
+                        return 'C-';        // 56-59.99%
                     } elseif ($overallPercentage >= 50) {
-                        return 'D';
+                        return 'D+';        // 50-55.99%
+                    } elseif ($overallPercentage >= 40) {
+                        return 'D';         // 40-49% (Marginal Pass)
                     } else {
-                        return 'F';
+                        return 'F';         // 0-39.99% (Fail)
                     }
                 }
                 // Determine pass/fail for grade calculation
@@ -555,11 +556,11 @@ $subject_assessment_type = $subject_result['assessment_type'] ?? 'coursework_fin
                 $final_grade = calculateOverallGrade($overall_total, $overall_pass ? 'PASS' : 'FAIL');
                 // Grade color class (same as student_detail.php)
                 function getGradeColorClass($grade) {
-                    if (in_array($grade, ['A+', 'A', 'A-'])) {
+                    if (in_array($grade, ['A+', 'A'])) {
                         return 'grade-success'; // Green
-                    } elseif (in_array($grade, ['B+', 'B', 'B-', 'C+', 'C', 'C-', 'D'])) {
+                    } elseif (in_array($grade, ['B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D'])) {
                         return 'grade-warning'; // Yellow/Orange
-                    } elseif (in_array($grade, ['E', 'F'])) {
+                    } elseif (in_array($grade, ['F'])) {
                         return 'grade-danger'; // Red
                     }
                     return 'grade-secondary'; // Default/gray

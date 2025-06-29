@@ -143,39 +143,37 @@ UPDATE grades SET
     )
 WHERE category IN ('coursework', 'final_exam');
 
--- Update grades with letter grades based on total marks
+-- Update grades with letter grades based on total marks using MMU grading system
 UPDATE grades SET grade = 
     CASE 
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 90 THEN 'A+'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 85 THEN 'A'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 80 THEN 'A-'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 75 THEN 'B+'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 70 THEN 'B'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 65 THEN 'B-'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 60 THEN 'C+'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 55 THEN 'C'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 50 THEN 'C-'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 45 THEN 'D'
-        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 40 THEN 'E'
-        ELSE 'F'
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 90 THEN 'A+'   -- 90-100% (Exceptional)
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 80 THEN 'A'    -- 80-89.99% (Excellent)
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 76 THEN 'B+'   -- 76-79.99%
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 72 THEN 'B'    -- 72-75.99% (Good)
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 68 THEN 'B-'   -- 68-71.99%
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 65 THEN 'C+'   -- 65-67.99%
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 60 THEN 'C'    -- 60-64.99% (Average)
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 56 THEN 'C-'   -- 56-59.99%
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 50 THEN 'D+'   -- 50-55.99%
+        WHEN (COALESCE(coursework_total, 0) + COALESCE(final_exam_total, 0)) >= 40 THEN 'D'    -- 40-49% (Marginal Pass)
+        ELSE 'F'                                                                                -- 0-39.99% (Fail)
     END
 WHERE subject_id IN (1, 2, 4); -- Only for subjects with final exams
 
--- For coursework-only subjects, calculate based on coursework total only
+-- For coursework-only subjects, calculate based on coursework total only using MMU grading system
 UPDATE grades SET grade = 
     CASE 
-        WHEN coursework_total >= 90 THEN 'A+'
-        WHEN coursework_total >= 85 THEN 'A'
-        WHEN coursework_total >= 80 THEN 'A-'
-        WHEN coursework_total >= 75 THEN 'B+'
-        WHEN coursework_total >= 70 THEN 'B'
-        WHEN coursework_total >= 65 THEN 'B-'
-        WHEN coursework_total >= 60 THEN 'C+'
-        WHEN coursework_total >= 55 THEN 'C'
-        WHEN coursework_total >= 50 THEN 'C-'
-        WHEN coursework_total >= 45 THEN 'D'
-        WHEN coursework_total >= 40 THEN 'E'
-        ELSE 'F'
+        WHEN coursework_total >= 90 THEN 'A+'   -- 90-100% (Exceptional)
+        WHEN coursework_total >= 80 THEN 'A'    -- 80-89.99% (Excellent)
+        WHEN coursework_total >= 76 THEN 'B+'   -- 76-79.99%
+        WHEN coursework_total >= 72 THEN 'B'    -- 72-75.99% (Good)
+        WHEN coursework_total >= 68 THEN 'B-'   -- 68-71.99%
+        WHEN coursework_total >= 65 THEN 'C+'   -- 65-67.99%
+        WHEN coursework_total >= 60 THEN 'C'    -- 60-64.99% (Average)
+        WHEN coursework_total >= 56 THEN 'C-'   -- 56-59.99%
+        WHEN coursework_total >= 50 THEN 'D+'   -- 50-55.99%
+        WHEN coursework_total >= 40 THEN 'D'    -- 40-49% (Marginal Pass)
+        ELSE 'F'                                -- 0-39.99% (Fail)
     END
 WHERE subject_id = 3; -- English Composition (coursework only)
 

@@ -88,9 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         THEN marks * (SELECT weightage FROM assessment_plans WHERE assessment_id = g.assessment_id) / 100 
                         ELSE 0 
                     END) as final_exam_total,
-                    SUM(marks * (SELECT weightage FROM assessment_plans WHERE assessment_id = g.assessment_id) / 100) as total_marks,
-                    COUNT(DISTINCT CASE WHEN category = "coursework" THEN assessment_id END) as coursework_count,
-                    COUNT(DISTINCT CASE WHEN category = "final_exam" THEN assessment_id END) as final_exam_count
+                    SUM(marks * (SELECT weightage FROM assessment_plans WHERE assessment_id = g.assessment_id) / 100) as total_marks
                 FROM grades g
                 WHERE student_id = ? AND subject_id = ? AND class_id = ?
             ');
@@ -107,8 +105,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $coursework_total = $result['coursework_total'] ?? 0;
             $final_exam_total = $result['final_exam_total'] ?? 0;
             $total_marks = $result['total_marks'] ?? 0;
-            $coursework_count = $result['coursework_count'] ?? 0;
-            $final_exam_count = $result['final_exam_count'] ?? 0;
 
             // Get subject assessment type
             $stmt = $conn->prepare('SELECT assessment_type FROM subjects WHERE subject_id = ?');
@@ -127,11 +123,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Calculate grade based on subject type
             $grade = '';
             if ($subject_assessment_type === 'coursework_only') {
-                // For coursework-only subjects, only check total coursework marks
-                $coursework_pass = ($coursework_total >= 50); // 50% of total coursework weightage
-                $grade = $coursework_pass ? 'P' : 'F';
+                // For coursework-only subjects, use coursework total for letter grade
+                $final_percentage = $coursework_total;
             } else {
-                // For coursework + final exam subjects, check both categories
+                // For coursework + final exam subjects, check both categories pass first
                 $coursework_weight = 0;
                 $final_exam_weight = 0;
                 
@@ -156,9 +151,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $coursework_weight = $weight_result['coursework_weight'] ?? 0;
                 $final_exam_weight = $weight_result['final_exam_weight'] ?? 0;
                 
-                $coursework_pass = ($coursework_weight > 0) ? ($coursework_total >= ($coursework_weight / 2)) : true;
-                $final_exam_pass = ($final_exam_weight > 0) ? ($final_exam_total >= ($final_exam_weight / 2)) : true;
-                $grade = ($coursework_pass && $final_exam_pass) ? 'P' : 'F';
+                // Check if both categories pass minimum requirements
+                $coursework_pass = ($coursework_weight > 0) ? ($coursework_total >= ($coursework_weight * 0.4)) : true; // 40% minimum
+                $final_exam_pass = ($final_exam_weight > 0) ? ($final_exam_total >= ($final_exam_weight * 0.4)) : true; // 40% minimum
+                
+                if (!$coursework_pass || !$final_exam_pass) {
+                    $grade = 'F'; // Fail if either category is below minimum
+                } else {
+                    $final_percentage = $coursework_total + $final_exam_total; // Total combined percentage
+                }
+            }
+            
+            // Calculate letter grade based on final percentage using MMU grading system (if not already failed)
+            if ($grade !== 'F') {
+                if ($final_percentage >= 90) {
+                    $grade = 'A+';        // 90-100% (Exceptional)
+                } elseif ($final_percentage >= 80) {
+                    $grade = 'A';         // 80-89.99% (Excellent)
+                } elseif ($final_percentage >= 76) {
+                    $grade = 'B+';        // 76-79.99%
+                } elseif ($final_percentage >= 72) {
+                    $grade = 'B';         // 72-75.99% (Good)
+                } elseif ($final_percentage >= 68) {
+                    $grade = 'B-';        // 68-71.99%
+                } elseif ($final_percentage >= 65) {
+                    $grade = 'C+';        // 65-67.99%
+                } elseif ($final_percentage >= 60) {
+                    $grade = 'C';         // 60-64.99% (Average)
+                } elseif ($final_percentage >= 56) {
+                    $grade = 'C-';        // 56-59.99%
+                } elseif ($final_percentage >= 50) {
+                    $grade = 'D+';        // 50-55.99%
+                } elseif ($final_percentage >= 40) {
+                    $grade = 'D';         // 40-49% (Marginal Pass)
+                } else {
+                    $grade = 'F';         // 0-39.99% (Fail)
+                }
             }
 
             // Update the grade and totals
@@ -167,21 +195,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 SET grade = ?,
                     coursework_total = ?,
                     final_exam_total = ?,
-                    total_marks = ?,
-                    coursework_count = ?,
-                    final_exam_count = ?,
-                    last_updated = NOW()
+                    total_marks = ?
                 WHERE student_id = ? 
                 AND subject_id = ? 
                 AND class_id = ?
             ');
-            $stmt->bind_param('sddiiiiii', 
+            $stmt->bind_param('sdddiii', 
                 $grade, 
                 $coursework_total, 
                 $final_exam_total, 
                 $total_marks,
-                $coursework_count,
-                $final_exam_count,
                 $student_id, 
                 $assessment['subject_id'], 
                 $class_id

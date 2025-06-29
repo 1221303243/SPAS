@@ -214,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $marks = intval($_POST['marks']);
     
     // Validate grade format
-    $valid_grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D', 'E', 'F'];
+            $valid_grades = ['A+', 'A', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F']; // MMU grading system
     if (!in_array($grade, $valid_grades)) {
         $error_message = "Invalid grade format";
     } elseif ($marks < 0 || $marks > 100) {
@@ -439,7 +439,7 @@ $total_pages = ceil($total_count / $items_per_page);
                                                         <select class="form-select" id="grade<?= $student['student_id'] ?>" name="grade" required>
                                                             <option value="">Select Grade</option>
                                                             <?php
-                                                            $grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D', 'E', 'F'];
+                                                            $grades = ['A+', 'A', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F']; // MMU grading system
                                                             foreach ($grades as $g) {
                                                                 $selected = ($student['grade'] === $g) ? 'selected' : '';
                                                                 echo "<option value=\"$g\" $selected>$g</option>";
