@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_student'])) {
 
 // Get class information
 $class_info = null;
-$stmt = $conn->prepare("SELECT c.class_id, c.class_name, s.subject_name, l.name AS lecturer_name 
+$stmt = $conn->prepare("SELECT c.class_id, c.class_name, s.subject_name, l.name AS lecturer_name, c.edu_level 
                        FROM classes c 
                        LEFT JOIN subjects s ON c.subject_id = s.subject_id 
                        LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id 
@@ -70,6 +70,7 @@ if ($result->num_rows > 0) {
     exit();
 }
 $stmt->close();
+$class_edu_level = $class_info['edu_level'];
 
 // Search logic
 $search_enrolled = isset($_GET['search_enrolled']) ? trim($_GET['search_enrolled']) : '';
@@ -110,9 +111,10 @@ $sql_available = "SELECT s.student_id, s.name, u.email
                   INNER JOIN users u ON s.user_id = u.user_id
                   WHERE s.student_id NOT IN (
                       SELECT student_id FROM student_classes WHERE class_id = ?
-                  )";
-$params_available = [$class_id];
-$types_available = "i";
+                  )
+                  AND s.edu_level = ?";
+$params_available = [$class_id, $class_edu_level];
+$types_available = "is";
 
 if ($search_available) {
     $sql_available .= " AND (s.name LIKE ? OR s.student_id LIKE ?)";

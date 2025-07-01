@@ -8,10 +8,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_class'])) {
     $class_name = trim($_POST['className']);
     $subject_id = intval($_POST['subject']);
     $lecturer_id = intval($_POST['lecturer']);
-    $edu_level = $_POST['edu_level'] ?? 'Undergraduate';
+    
     if (!$class_name || !$subject_id || !$lecturer_id) {
         $errors[] = 'All fields are required.';
     } else {
+        // Fetch edu_level from subject
+        $edu_level = 'Undergraduate';
+        $subject_stmt = $conn->prepare("SELECT edu_level FROM subjects WHERE subject_id = ?");
+        $subject_stmt->bind_param("i", $subject_id);
+        $subject_stmt->execute();
+        $subject_stmt->bind_result($edu_level);
+        $subject_stmt->fetch();
+        $subject_stmt->close();
+        
         $stmt = $conn->prepare("INSERT INTO classes (class_name, edu_level, subject_id, lecturer_id) VALUES (?, ?, ?, ?)");
         $stmt->bind_param("ssii", $class_name, $edu_level, $subject_id, $lecturer_id);
         if ($stmt->execute()) {
@@ -31,10 +40,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_class'])) {
     $edit_class_name = trim($_POST['edit_className']);
     $edit_subject_id = intval($_POST['edit_subject']);
     $edit_lecturer_id = intval($_POST['edit_lecturer']);
-    $edit_edu_level = $_POST['edit_edu_level'] ?? 'Undergraduate';
+    
     if (!$edit_class_id || !$edit_class_name || !$edit_subject_id || !$edit_lecturer_id) {
         $errors[] = 'All fields are required for editing.';
     } else {
+        // Fetch edu_level from subject
+        $edit_edu_level = 'Undergraduate';
+        $subject_stmt = $conn->prepare("SELECT edu_level FROM subjects WHERE subject_id = ?");
+        $subject_stmt->bind_param("i", $edit_subject_id);
+        $subject_stmt->execute();
+        $subject_stmt->bind_result($edit_edu_level);
+        $subject_stmt->fetch();
+        $subject_stmt->close();
+        
         $stmt = $conn->prepare("UPDATE classes SET class_name=?, edu_level=?, subject_id=?, lecturer_id=? WHERE class_id=?");
         $stmt->bind_param("ssiii", $edit_class_name, $edit_edu_level, $edit_subject_id, $edit_lecturer_id, $edit_class_id);
         if ($stmt->execute()) {
@@ -164,14 +182,14 @@ $edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter']
                 <?php
                 // Fetch all classes with subject and lecturer info
                 $classes = [];
-                $sql = "SELECT c.class_id, c.class_name, c.edu_level, c.semester, c.year, s.subject_name, l.name AS lecturer_name, c.subject_id, c.lecturer_id FROM classes c LEFT JOIN subjects s ON c.subject_id = s.subject_id LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id";
+                $sql = "SELECT c.class_id, c.class_name, s.edu_level, c.semester, c.year, s.subject_name, l.name AS lecturer_name, c.subject_id, c.lecturer_id FROM classes c LEFT JOIN subjects s ON c.subject_id = s.subject_id LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id";
                 $where = [];
                 $params = [];
                 $types = '';
                 
                 // Education level filter
                 if ($edu_level_filter) {
-                    $where[] = 'c.edu_level = ?';
+                    $where[] = 's.edu_level = ?';
                     $params[] = $edu_level_filter;
                     $types .= 's';
                 }
@@ -266,15 +284,6 @@ $edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter']
                         <input type="text" id="className" name="className" required>
                     </div>
                     <div class="form-group">
-                        <label for="edu_level">Education Level</label>
-                        <select id="edu_level" name="edu_level" required>
-                            <option value="Foundation">Foundation</option>
-                            <option value="Diploma">Diploma</option>
-                            <option value="Undergraduate">Undergraduate</option>
-                            <option value="Postgraduate">Postgraduate</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label for="subject">Subject</label>
                         <select id="subject" name="subject" required>
                             <option value="">Select Subject</option>
@@ -313,15 +322,6 @@ $edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter']
                     <div class="form-group">
                         <label for="edit_className">Class Name</label>
                         <input type="text" id="edit_className" name="edit_className" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit_edu_level">Education Level</label>
-                        <select id="edit_edu_level" name="edit_edu_level" required>
-                            <option value="Foundation">Foundation</option>
-                            <option value="Diploma">Diploma</option>
-                            <option value="Undergraduate">Undergraduate</option>
-                            <option value="Postgraduate">Postgraduate</option>
-                        </select>
                     </div>
                     <div class="form-group">
                         <label for="edit_subject">Subject</label>
@@ -375,7 +375,6 @@ $edu_level_filter = isset($_GET['edu_level_filter']) ? $_GET['edu_level_filter']
             var classData = JSON.parse(el.getAttribute('data-class'));
             document.getElementById('edit_class_id').value = classData.class_id;
             document.getElementById('edit_className').value = classData.class_name;
-            document.getElementById('edit_edu_level').value = classData.edu_level || 'Undergraduate';
             document.getElementById('edit_subject').value = classData.subject_id;
             document.getElementById('edit_lecturer').value = classData.lecturer_id;
             document.getElementById('editClassModal').style.display = 'block';
